@@ -48,6 +48,13 @@
     version: '1.0.0',
     codename: 'Aegis',
     
+    // Legal page URLs
+    urls: {
+      privacy: 'privacy.html',
+      terms: 'terms.html',
+      home: 'index.html'
+    },
+    
     brandColors: {
       primary: '#1e3a5f',      // Deep Security Blue
       secondary: '#00d4aa',    // Shield Green
@@ -810,8 +817,8 @@
             <span>Protected by ${VAULTGUARD.name}</span>
           </div>
           <div class="vg-footer-links">
-            <a href="#" class="vg-footer-link" onclick="return false;">Privacy</a>
-            <a href="#" class="vg-footer-link" onclick="return false;">Terms</a>
+            <a href="${VAULTGUARD.urls.privacy}" class="vg-footer-link" target="_blank">Privacy</a>
+            <a href="${VAULTGUARD.urls.terms}" class="vg-footer-link" target="_blank">Terms</a>
           </div>
         </div>
       `;
