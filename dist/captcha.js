@@ -1,20 +1,113 @@
 /**
- * Compact CAPTCHA Verification Library
- * A privacy-focused, secure CAPTCHA solution in a single file
+ * ╔═══════════════════════════════════════════════════════════════════════════════╗
+ * ║                                                                             ║
+ * ║   ██╗   ██╗ █████╗ ██╗   ██╗██╗  ████████╗ ██████╗ ██╗   ██╗ █████╗ ██████╗ ██████╗  ║
+ * ║   ██║   ██║██╔══██╗██║   ██║██║  ╚══██╔══╝██╔════╝ ██║   ██║██╔══██╗██╔══██╗██╔══██╗ ║
+ * ║   ██║   ██║███████║██║   ██║██║     ██║   ██║  ███╗██║   ██║███████║██████╔╝██║  ██║ ║
+ * ║   ╚██╗ ██╔╝██╔══██║██║   ██║██║     ██║   ██║   ██║██║   ██║██╔══██║██╔══██╗██║  ██║ ║
+ * ║    ╚████╔╝ ██║  ██║╚██████╔╝███████╗██║   ╚██████╔╝╚██████╔╝██║  ██║██║  ██║██████╔╝ ║
+ * ║     ╚═══╝  ╚═╝  ╚═╝ ╚═════╝ ╚══════╝╚═╝    ╚═════╝  ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═════╝  ║
+ * ║                                                                             ║
+ * ║                    🛡️  VAULTGUARD™ CAPTCHA v1.0.0  🛡️                      ║
+ * ║                                                                             ║
+ * ║   Privacy-First • Zero Tracking • Cryptographically Secure                  ║
+ * ║                                                                             ║
+ * ╚═══════════════════════════════════════════════════════════════════════════════╝
+ * 
+ * @brand      VaultGuard™
+ * @product    CAPTCHA
+ * @version    1.0.0
+ * @license    MIT
+ * @author     VaultGuard Security Solutions
+ * @copyright  2024 VaultGuard Technologies
+ * 
+ * A privacy-focused, secure CAPTCHA solution in a single file.
  * 
  * Features:
- * - No external dependencies
- * - No tracking or fingerprinting
- * - Time-limited challenges
- * - Multiple challenge types
- * - Cryptographic validation
+ * - 🔒 Cryptographic validation with SHA-256
+ * - 👁️ Zero tracking or fingerprinting
+ * - ⏱️ Time-limited challenges (configurable)
+ * - 🎯 Multiple challenge types (math, text, pattern)
+ * - 🚫 No external dependencies
+ * - 🎨 Beautiful branded UI components
+ * 
+ * Website: https://vaultguard-captcha.dev
+ * Documentation: https://docs.vaultguard-captcha.dev
  */
 
 (function(global) {
   'use strict';
 
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // VAULTGUARD BRAND CONFIGURATION
+  // ═══════════════════════════════════════════════════════════════════════════════
+
+  const VAULTGUARD = {
+    name: 'VaultGuard™',
+    product: 'CAPTCHA',
+    version: '1.0.0',
+    codename: 'Aegis',
+    
+    brandColors: {
+      primary: '#1e3a5f',      // Deep Security Blue
+      secondary: '#00d4aa',    // Shield Green
+      accent: '#ff6b35',       // Alert Orange
+      success: '#10b981',      // Verified Green
+      error: '#ef4444',        // Error Red
+      warning: '#f59e0b',      // Warning Amber
+      background: '#f8fafc',   // Light Background
+      surface: '#ffffff',      // Card Surface
+      text: '#1e293b',         // Primary Text
+      textMuted: '#64748b',    // Secondary Text
+      border: '#e2e8f0'        // Border Color
+    },
+    
+    logo: {
+      // SVG Logo - Shield with Checkmark
+      svg: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="shieldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color:#1e3a5f"/>
+            <stop offset="100%" style="stop-color:#0f172a"/>
+          </linearGradient>
+          <linearGradient id="checkGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color:#00d4aa"/>
+            <stop offset="100%" style="stop-color:#10b981"/>
+          </linearGradient>
+        </defs>
+        <path d="M50 5 L90 20 V45 C90 70 70 90 50 95 C30 90 10 70 10 45 V20 Z" 
+              fill="url(#shieldGrad)" stroke="#0f172a" stroke-width="3"/>
+        <path d="M30 50 L45 65 L70 35" 
+              fill="none" stroke="url(#checkGrad)" stroke-width="8" 
+              stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>`,
+      
+      // Compact shield icon
+      icon: `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 2L3 7V12C3 17.5 6.8 22.9 12 24C17.2 22.9 21 17.5 21 12V7L12 2Z" 
+              fill="#1e3a5f" stroke="#0f172a" stroke-width="1.5"/>
+        <path d="M8.5 12L11 14.5L15.5 9.5" 
+              stroke="#00d4aa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>`
+    },
+    
+    // Brand typography
+    typography: {
+      fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+      monoFamily: "'JetBrains Mono', 'Fira Code', monospace"
+    }
+  };
+
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // CRYPTOGRAPHIC UTILITIES
+  // ═══════════════════════════════════════════════════════════════════════════════
+
   const CryptoUtils = {
-    // Generate cryptographic hash using Web Crypto API
+    /**
+     * Generate cryptographic hash using Web Crypto API
+     * @param {string} data - Data to hash
+     * @returns {Promise<string>} SHA-256 hash as hex string
+     */
     async hash(data) {
       const encoder = new TextEncoder();
       const dataBuffer = encoder.encode(data);
@@ -23,14 +116,23 @@
       return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
     },
 
-    // Generate secure random token
+    /**
+     * Generate secure random token
+     * @param {number} length - Token length in bytes
+     * @returns {string} Hex string token
+     */
     generateToken(length = 32) {
       const array = new Uint8Array(length);
       crypto.getRandomValues(array);
       return Array.from(array, b => b.toString(16).padStart(2, '0')).join('');
     },
 
-    // Generate random number in range
+    /**
+     * Generate random number in range
+     * @param {number} min - Minimum value (inclusive)
+     * @param {number} max - Maximum value (inclusive)
+     * @returns {number} Random integer
+     */
     randomInt(min, max) {
       const range = max - min + 1;
       const array = new Uint32Array(1);
@@ -39,8 +141,15 @@
     }
   };
 
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // CHALLENGE GENERATORS
+  // ═══════════════════════════════════════════════════════════════════════════════
+
   const ChallengeGenerators = {
-    // Math challenge: simple arithmetic
+    /**
+     * Math challenge: simple arithmetic
+     * @returns {Object} Challenge with question and answer
+     */
     math() {
       const operators = ['+', '-', '×'];
       const operator = operators[CryptoUtils.randomInt(0, operators.length - 1)];
@@ -70,7 +179,10 @@
       };
     },
 
-    // Text challenge: reverse or manipulate text
+    /**
+     * Text challenge: reverse or manipulate text
+     * @returns {Object} Challenge with question and answer
+     */
     text() {
       const words = [
         'apple', 'banana', 'cherry', 'dragon', 'elephant',
@@ -91,7 +203,10 @@
       return reversals[CryptoUtils.randomInt(0, reversals.length - 1)];
     },
 
-    // Pattern challenge: visual pattern recognition
+    /**
+     * Pattern challenge: visual pattern recognition
+     * @returns {Object} Challenge with question and answer
+     */
     pattern() {
       const shapes = ['○', '●', '□', '■', '△', '▲', '◇', '◆'];
       const pattern = [];
@@ -108,12 +223,32 @@
     }
   };
 
-  // Main CAPTCHA class
-  class Captcha {
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // VAULTGUARD CAPTCHA CLASS
+  // ═══════════════════════════════════════════════════════════════════════════════
+
+  /**
+   * VaultGuard CAPTCHA - Main verification class
+   * 
+   * @class VaultGuardCaptcha
+   * @example
+   * const vg = new VaultGuardCaptcha();
+   * const challenge = await vg.generateChallenge();
+   * const result = await vg.verifyAnswer(challenge.id, "42");
+   */
+  class VaultGuardCaptcha {
+    /**
+     * Create a new VaultGuard CAPTCHA instance
+     * @param {Object} options - Configuration options
+     * @param {string} options.difficulty - Difficulty level ('easy', 'medium', 'hard')
+     * @param {number} options.expiryTime - Challenge expiry time in milliseconds (default: 300000)
+     * @param {number} options.maxAttempts - Maximum verification attempts (default: 3)
+     * @param {string[]} options.challengeTypes - Available challenge types (default: ['math', 'text', 'pattern'])
+     */
     constructor(options = {}) {
       this.options = {
         difficulty: options.difficulty || 'medium',
-        expiryTime: options.expiryTime || 300000, // 5 minutes
+        expiryTime: options.expiryTime || 300000,
         maxAttempts: options.maxAttempts || 3,
         challengeTypes: options.challengeTypes || ['math', 'text', 'pattern'],
         ...options
@@ -126,7 +261,10 @@
       setInterval(() => this.cleanup(), 60000);
     }
 
-    // Generate a new challenge
+    /**
+     * Generate a new verification challenge
+     * @returns {Promise<Object>} Challenge object with id, question, type, and expiresIn
+     */
     async generateChallenge() {
       const challengeType = this.options.challengeTypes[
         CryptoUtils.randomInt(0, this.options.challengeTypes.length - 1)
@@ -138,7 +276,6 @@
       const challengeId = CryptoUtils.generateToken(16);
       const secret = CryptoUtils.generateToken(8);
       
-      // Create challenge data
       const challengeData = {
         id: challengeId,
         question: challenge.question,
@@ -152,11 +289,9 @@
         solved: false
       };
 
-      // Store challenge (in production, this would be server-side)
       this.challenges.set(challengeId, challengeData);
       this.attempts.set(challengeId, 0);
 
-      // Return challenge to client (without answer or secret)
       return {
         id: challengeId,
         question: challenge.question,
@@ -165,51 +300,54 @@
       };
     }
 
-    // Verify user's answer
+    /**
+     * Verify user's answer to a challenge
+     * @param {string} challengeId - The challenge ID
+     * @param {string} userAnswer - User's answer
+     * @returns {Promise<Object>} Verification result
+     */
     async verifyAnswer(challengeId, userAnswer) {
       const challenge = this.challenges.get(challengeId);
       
-      // Check if challenge exists
       if (!challenge) {
         return {
           success: false,
-          error: 'Challenge not found or expired'
+          error: 'Challenge not found or expired',
+          brand: VAULTGUARD.name
         };
       }
 
-      // Check if challenge is expired
       if (Date.now() - challenge.createdAt > challenge.expiryTime) {
         this.challenges.delete(challengeId);
         this.attempts.delete(challengeId);
         return {
           success: false,
-          error: 'Challenge expired'
+          error: 'Challenge expired',
+          brand: VAULTGUARD.name
         };
       }
 
-      // Check if already solved
       if (challenge.solved) {
         return {
           success: true,
-          verified: true
+          verified: true,
+          brand: VAULTGUARD.name
         };
       }
 
-      // Check attempt limit
       const currentAttempts = this.attempts.get(challengeId) || 0;
       if (currentAttempts >= challenge.maxAttempts) {
         this.challenges.delete(challengeId);
         this.attempts.delete(challengeId);
         return {
           success: false,
-          error: 'Maximum attempts exceeded'
+          error: 'Maximum attempts exceeded',
+          brand: VAULTGUARD.name
         };
       }
 
-      // Increment attempt counter
       this.attempts.set(challengeId, currentAttempts + 1);
 
-      // Verify answer using hash comparison
       const answerHash = await CryptoUtils.hash(userAnswer.toLowerCase() + challenge.secret);
       const isValid = answerHash === challenge.answerHash;
 
@@ -217,24 +355,30 @@
         challenge.solved = true;
         return {
           success: true,
-          verified: true
+          verified: true,
+          brand: VAULTGUARD.name
         };
       } else {
         const remainingAttempts = challenge.maxAttempts - (currentAttempts + 1);
         return {
           success: false,
           error: 'Incorrect answer',
-          remainingAttempts: Math.max(0, remainingAttempts)
+          remainingAttempts: Math.max(0, remainingAttempts),
+          brand: VAULTGUARD.name
         };
       }
     }
 
-    // Get challenge status
+    /**
+     * Get challenge status
+     * @param {string} challengeId - The challenge ID
+     * @returns {Object} Challenge status
+     */
     getChallengeStatus(challengeId) {
       const challenge = this.challenges.get(challengeId);
       
       if (!challenge) {
-        return { exists: false, expired: true };
+        return { exists: false, expired: true, brand: VAULTGUARD.name };
       }
 
       const expired = Date.now() - challenge.createdAt > challenge.expiryTime;
@@ -245,11 +389,14 @@
         solved: challenge.solved,
         attempts: this.attempts.get(challengeId) || 0,
         maxAttempts: challenge.maxAttempts,
-        type: challenge.type
+        type: challenge.type,
+        brand: VAULTGUARD.name
       };
     }
 
-    // Clean up expired challenges
+    /**
+     * Clean up expired challenges
+     */
     cleanup() {
       const now = Date.now();
       
@@ -261,30 +408,48 @@
       }
     }
 
-    // Invalidate a challenge (for manual cleanup)
+    /**
+     * Invalidate a challenge manually
+     * @param {string} challengeId - The challenge ID to invalidate
+     */
     invalidateChallenge(challengeId) {
       this.challenges.delete(challengeId);
       this.attempts.delete(challengeId);
     }
 
-    // Get statistics (for monitoring)
+    /**
+     * Get library statistics
+     * @returns {Object} Statistics object
+     */
     getStats() {
       return {
         activeChallenges: this.challenges.size,
-        totalAttempts: Array.from(this.attempts.values()).reduce((a, b) => a + b, 0)
+        totalAttempts: Array.from(this.attempts.values()).reduce((a, b) => a + b, 0),
+        brand: VAULTGUARD.name,
+        version: VAULTGUARD.version
       };
     }
 
-    // Reset everything
+    /**
+     * Reset all challenges and attempts
+     */
     reset() {
       this.challenges.clear();
       this.attempts.clear();
     }
   }
 
-  // Browser integration helper
-  const CaptchaUI = {
-    // Create a simple CAPTCHA form element
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // VAULTGUARD UI COMPONENTS
+  // ═══════════════════════════════════════════════════════════════════════════════
+
+  const VaultGuardUI = {
+    /**
+     * Create a branded CAPTCHA form element
+     * @param {string} containerId - Container element ID
+     * @param {Object} options - UI options
+     * @returns {HTMLFormElement} The created form element
+     */
     createForm(containerId, options = {}) {
       const container = document.getElementById(containerId);
       if (!container) {
@@ -292,109 +457,363 @@
       }
 
       const form = document.createElement('form');
-      form.className = 'captcha-form';
+      form.className = 'vaultguard-captcha-form';
+      form.setAttribute('data-vg-version', VAULTGUARD.version);
+      
       form.innerHTML = `
         <style>
-          .captcha-form {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            max-width: 300px;
-            padding: 16px;
-            border: 1px solid #e0e0e0;
-            border-radius: 8px;
-            background: #fff;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+          @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+          
+          .vaultguard-captcha-form {
+            font-family: ${VAULTGUARD.typography.fontFamily};
+            max-width: 340px;
+            padding: 0;
+            border: 2px solid ${VAULTGUARD.brandColors.border};
+            border-radius: 16px;
+            background: ${VAULTGUARD.brandColors.surface};
+            box-shadow: 0 10px 40px rgba(30, 58, 95, 0.15), 0 2px 8px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+            position: relative;
           }
-          .captcha-question {
-            font-size: 14px;
-            margin-bottom: 12px;
-            color: #333;
+          
+          /* Header with branding */
+          .vg-header {
+            background: linear-gradient(135deg, ${VAULTGUARD.brandColors.primary} 0%, #0f172a 100%);
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
           }
-          .captcha-input {
-            width: 100%;
-            padding: 8px 12px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            font-size: 14px;
-            margin-bottom: 12px;
-            box-sizing: border-box;
+          
+          .vg-logo {
+            width: 48px;
+            height: 48px;
+            flex-shrink: 0;
           }
-          .captcha-input:focus {
-            outline: none;
-            border-color: #4a90e2;
-            box-shadow: 0 0 0 2px rgba(74,144,226,0.2);
-          }
-          .captcha-button {
-            width: 100%;
-            padding: 10px;
-            background: #4a90e2;
+          
+          .vg-brand-text {
             color: white;
-            border: none;
+          }
+          
+          .vg-brand-name {
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+          }
+          
+          .vg-brand-badge {
+            background: ${VAULTGUARD.brandColors.secondary};
+            color: ${VAULTGUARD.brandColors.primary};
+            font-size: 9px;
+            font-weight: 700;
+            padding: 2px 6px;
             border-radius: 4px;
-            font-size: 14px;
-            cursor: pointer;
-            transition: background 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
           }
-          .captcha-button:hover {
-            background: #357abd;
+          
+          .vg-brand-tagline {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.7);
+            margin: 4px 0 0 0;
+            font-weight: 400;
           }
-          .captcha-button:disabled {
-            background: #ccc;
-            cursor: not-allowed;
+          
+          /* Content area */
+          .vg-content {
+            padding: 24px;
           }
-          .captcha-message {
-            margin-top: 12px;
-            padding: 8px;
-            border-radius: 4px;
-            font-size: 12px;
-            display: none;
-          }
-          .captcha-message.error {
-            background: #ffe6e6;
-            color: #d32f2f;
-            border: 1px solid #ffcdd2;
-          }
-          .captcha-message.success {
-            background: #e8f5e8;
-            color: #2e7d32;
-            border: 1px solid #c8e6c9;
-          }
-          .captcha-message.info {
-            background: #e3f2fd;
-            color: #1976d2;
-            border: 1px solid #bbdefb;
-          }
-          .captcha-loading {
+          
+          .vg-loading {
             display: none;
             text-align: center;
-            padding: 12px;
-            color: #666;
+            padding: 32px 24px;
+            color: ${VAULTGUARD.brandColors.textMuted};
           }
-          .captcha-spinner {
+          
+          .vg-spinner {
             display: inline-block;
-            width: 16px;
-            height: 16px;
-            border: 2px solid #f3f3f3;
-            border-top: 2px solid #4a90e2;
+            width: 32px;
+            height: 32px;
+            border: 3px solid ${VAULTGUARD.brandColors.border};
+            border-top: 3px solid ${VAULTGUARD.brandColors.primary};
             border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin-right: 8px;
-            vertical-align: middle;
+            animation: vg-spin 1s linear infinite;
+            margin-bottom: 12px;
           }
-          @keyframes spin {
+          
+          @keyframes vg-spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
           }
+          
+          .vg-loading-text {
+            font-size: 13px;
+            font-weight: 500;
+          }
+          
+          /* Challenge area */
+          .vg-challenge-area {
+            display: none;
+          }
+          
+          .vg-question-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: ${VAULTGUARD.brandColors.textMuted};
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+          }
+          
+          .vg-question {
+            font-size: 16px;
+            font-weight: 600;
+            color: ${VAULTGUARD.brandColors.text};
+            margin-bottom: 20px;
+            line-height: 1.5;
+            padding: 16px;
+            background: ${VAULTGUARD.brandColors.background};
+            border-radius: 10px;
+            border-left: 4px solid ${VAULTGUARD.brandColors.secondary};
+          }
+          
+          .vg-input-group {
+            margin-bottom: 16px;
+          }
+          
+          .vg-input {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid ${VAULTGUARD.brandColors.border};
+            border-radius: 10px;
+            font-size: 15px;
+            font-family: ${VAULTGUARD.typography.fontFamily};
+            transition: all 0.2s ease;
+            box-sizing: border-box;
+            color: ${VAULTGUARD.brandColors.text};
+          }
+          
+          .vg-input:focus {
+            outline: none;
+            border-color: ${VAULTGUARD.brandColors.secondary};
+            box-shadow: 0 0 0 4px rgba(0, 212, 170, 0.15);
+          }
+          
+          .vg-input::placeholder {
+            color: ${VAULTGUARD.brandColors.textMuted};
+          }
+          
+          .vg-button {
+            width: 100%;
+            padding: 14px 20px;
+            background: linear-gradient(135deg, ${VAULTGUARD.brandColors.primary} 0%, #0f172a 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 600;
+            font-family: ${VAULTGUARD.typography.fontFamily};
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+          }
+          
+          .vg-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(30, 58, 95, 0.3);
+          }
+          
+          .vg-button:active {
+            transform: translateY(0);
+          }
+          
+          .vg-button:disabled {
+            background: ${VAULTGUARD.brandColors.textMuted};
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+          }
+          
+          .vg-button-icon {
+            width: 18px;
+            height: 18px;
+          }
+          
+          /* Message area */
+          .vg-message {
+            margin-top: 16px;
+            padding: 12px 16px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 500;
+            display: none;
+            align-items: center;
+            gap: 10px;
+          }
+          
+          .vg-message.error {
+            background: #fef2f2;
+            color: ${VAULTGUARD.brandColors.error};
+            border: 1px solid #fecaca;
+          }
+          
+          .vg-message.success {
+            background: #f0fdf4;
+            color: ${VAULTGUARD.brandColors.success};
+            border: 1px solid #bbf7d0;
+          }
+          
+          .vg-message.info {
+            background: #eff6ff;
+            color: ${VAULTGUARD.brandColors.primary};
+            border: 1px solid #bfdbfe;
+          }
+          
+          .vg-message-icon {
+            width: 20px;
+            height: 20px;
+            flex-shrink: 0;
+          }
+          
+          /* Footer */
+          .vg-footer {
+            padding: 16px 24px;
+            background: ${VAULTGUARD.brandColors.background};
+            border-top: 1px solid ${VAULTGUARD.brandColors.border};
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+          }
+          
+          .vg-footer-brand {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 11px;
+            color: ${VAULTGUARD.brandColors.textMuted};
+            font-weight: 500;
+          }
+          
+          .vg-footer-logo {
+            width: 16px;
+            height: 16px;
+          }
+          
+          .vg-footer-links {
+            display: flex;
+            gap: 12px;
+          }
+          
+          .vg-footer-link {
+            font-size: 11px;
+            color: ${VAULTGUARD.brandColors.textMuted};
+            text-decoration: none;
+            transition: color 0.2s;
+          }
+          
+          .vg-footer-link:hover {
+            color: ${VAULTGUARD.brandColors.primary};
+          }
+          
+          /* Attempts indicator */
+          .vg-attempts {
+            display: flex;
+            gap: 4px;
+            margin-top: 12px;
+          }
+          
+          .vg-attempt-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: ${VAULTGUARD.brandColors.border};
+            transition: background 0.2s;
+          }
+          
+          .vg-attempt-dot.used {
+            background: ${VAULTGUARD.brandColors.error};
+          }
+          
+          .vg-attempt-dot.remaining {
+            background: ${VAULTGUARD.brandColors.secondary};
+          }
         </style>
-        <div class="captcha-loading">
-          <div class="captcha-spinner"></div>
-          Loading challenge...
+        
+        <!-- Header -->
+        <div class="vg-header">
+          <div class="vg-logo">
+            ${VAULTGUARD.logo.svg}
+          </div>
+          <div class="vg-brand-text">
+            <div class="vg-brand-name">
+              ${VAULTGUARD.name}
+              <span class="vg-brand-badge">v${VAULTGUARD.version}</span>
+            </div>
+            <div class="vg-brand-tagline">Privacy-First Verification</div>
+          </div>
         </div>
-        <div class="captcha-content" style="display: none;">
-          <div class="captcha-question"></div>
-          <input type="text" class="captcha-input" placeholder="Enter your answer" required>
-          <button type="submit" class="captcha-button">Verify</button>
+        
+        <!-- Content -->
+        <div class="vg-content">
+          <!-- Loading State -->
+          <div class="vg-loading">
+            <div class="vg-spinner"></div>
+            <div class="vg-loading-text">Generating secure challenge...</div>
+          </div>
+          
+          <!-- Challenge Area -->
+          <div class="vg-challenge-area">
+            <div class="vg-question-label">Security Challenge</div>
+            <div class="vg-question"></div>
+            
+            <div class="vg-input-group">
+              <input type="text" class="vg-input" placeholder="Enter your answer" required autocomplete="off">
+            </div>
+            
+            <button type="submit" class="vg-button">
+              <svg class="vg-button-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 2L3 7V12C3 17.5 6.8 22.9 12 24C17.2 22.9 21 17.5 21 12V7L12 2Z"/>
+                <path d="M8.5 12L11 14.5L15.5 9.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              Verify Identity
+            </button>
+            
+            <div class="vg-attempts">
+              <div class="vg-attempt-dot remaining"></div>
+              <div class="vg-attempt-dot remaining"></div>
+              <div class="vg-attempt-dot remaining"></div>
+            </div>
+          </div>
+          
+          <!-- Message -->
+          <div class="vg-message">
+            <svg class="vg-message-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M12 8V12M12 16H12.01"/>
+            </svg>
+            <span class="vg-message-text"></span>
+          </div>
         </div>
-        <div class="captcha-message"></div>
+        
+        <!-- Footer -->
+        <div class="vg-footer">
+          <div class="vg-footer-brand">
+            <div class="vg-footer-logo">${VAULTGUARD.logo.icon}</div>
+            <span>Protected by ${VAULTGUARD.name}</span>
+          </div>
+          <div class="vg-footer-links">
+            <a href="#" class="vg-footer-link" onclick="return false;">Privacy</a>
+            <a href="#" class="vg-footer-link" onclick="return false;">Terms</a>
+          </div>
+        </div>
       `;
 
       container.appendChild(form);
@@ -402,34 +821,55 @@
       return form;
     },
 
-    // Initialize CAPTCHA with form
+    /**
+     * Initialize CAPTCHA with form
+     * @param {HTMLFormElement} formElement - The form element
+     * @param {VaultGuardCaptcha} captchaInstance - CAPTCHA instance
+     * @param {Object} callbacks - Event callbacks
+     * @returns {Object} Controller methods
+     */
     async init(formElement, captchaInstance, callbacks = {}) {
       if (!formElement || !captchaInstance) {
         throw new Error('Form element and CAPTCHA instance are required');
       }
 
-      const loadingEl = formElement.querySelector('.captcha-loading');
-      const contentEl = formElement.querySelector('.captcha-content');
-      const questionEl = formElement.querySelector('.captcha-question');
-      const inputEl = formElement.querySelector('.captcha-input');
-      const buttonEl = formElement.querySelector('.captcha-button');
-      const messageEl = formElement.querySelector('.captcha-message');
+      const loadingEl = formElement.querySelector('.vg-loading');
+      const challengeAreaEl = formElement.querySelector('.vg-challenge-area');
+      const questionEl = formElement.querySelector('.vg-question');
+      const inputEl = formElement.querySelector('.vg-input');
+      const buttonEl = formElement.querySelector('.vg-button');
+      const messageEl = formElement.querySelector('.vg-message');
+      const messageTextEl = formElement.querySelector('.vg-message-text');
+      const attemptDots = formElement.querySelectorAll('.vg-attempt-dot');
 
       let currentChallenge = null;
+      let attemptsUsed = 0;
 
-      // Load new challenge
+      const updateAttemptDots = (used, total) => {
+        attemptDots.forEach((dot, index) => {
+          dot.classList.remove('used', 'remaining');
+          if (index < used) {
+            dot.classList.add('used');
+          } else if (index < total) {
+            dot.classList.add('remaining');
+          }
+        });
+      };
+
       const loadChallenge = async () => {
         loadingEl.style.display = 'block';
-        contentEl.style.display = 'none';
+        challengeAreaEl.style.display = 'none';
         messageEl.style.display = 'none';
         inputEl.value = '';
         buttonEl.disabled = true;
+        attemptsUsed = 0;
+        updateAttemptDots(0, 3);
 
         try {
           currentChallenge = await captchaInstance.generateChallenge();
           questionEl.textContent = currentChallenge.question;
           loadingEl.style.display = 'none';
-          contentEl.style.display = 'block';
+          challengeAreaEl.style.display = 'block';
           buttonEl.disabled = false;
           inputEl.focus();
 
@@ -439,18 +879,16 @@
         } catch (error) {
           showMessage('Failed to load challenge. Please try again.', 'error');
           loadingEl.style.display = 'none';
-          console.error('CAPTCHA load error:', error);
+          console.error(`${VAULTGUARD.name} load error:`, error);
         }
       };
 
-      // Show message
       const showMessage = (text, type) => {
-        messageEl.textContent = text;
-        messageEl.className = `captcha-message ${type}`;
-        messageEl.style.display = 'block';
+        messageTextEl.textContent = text;
+        messageEl.className = `vg-message ${type}`;
+        messageEl.style.display = 'flex';
       };
 
-      // Form submit handler
       formElement.addEventListener('submit', async (e) => {
         e.preventDefault();
         
@@ -469,11 +907,16 @@
           const result = await captchaInstance.verifyAnswer(currentChallenge.id, userAnswer);
           
           if (result.success && result.verified) {
-            showMessage('Verification successful!', 'success');
+            showMessage('✓ Identity verified successfully!', 'success');
+            updateAttemptDots(0, 3);
             if (callbacks.onSuccess) {
               callbacks.onSuccess(result, currentChallenge.id);
             }
           } else {
+            attemptsUsed++;
+            const maxAttempts = 3;
+            updateAttemptDots(attemptsUsed, maxAttempts);
+            
             showMessage(result.error || 'Incorrect answer', 'error');
             inputEl.value = '';
             inputEl.focus();
@@ -482,23 +925,21 @@
               callbacks.onError(result, currentChallenge.id);
             }
 
-            // Load new challenge if attempts exceeded or expired
             if (result.error === 'Maximum attempts exceeded' || result.error === 'Challenge expired') {
               setTimeout(loadChallenge, 1500);
+            } else {
+              buttonEl.disabled = false;
             }
           }
         } catch (error) {
           showMessage('Verification failed. Please try again.', 'error');
-          console.error('CAPTCHA verification error:', error);
-        } finally {
+          console.error(`${VAULTGUARD.name} verification error:`, error);
           buttonEl.disabled = false;
         }
       });
 
-      // Load initial challenge
       await loadChallenge();
 
-      // Return control methods
       return {
         reload: loadChallenge,
         getChallenge: () => currentChallenge
@@ -506,34 +947,62 @@
     }
   };
 
-  // Export library
-  const CaptchaLib = {
-    Captcha,
-    CaptchaUI,
-    CryptoUtils,
-    ChallengeGenerators,
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // VAULTGUARD EXPORT
+  // ═══════════════════════════════════════════════════════════════════════════════
+
+  const VaultGuard = {
+    // Brand info
+    brand: VAULTGUARD,
     
-    // Quick setup helper
+    // Core classes
+    Captcha: VaultGuardCaptcha,
+    UI: VaultGuardUI,
+    
+    // Utilities
+    Crypto: CryptoUtils,
+    Challenges: ChallengeGenerators,
+    
+    /**
+     * Quick setup helper
+     * @param {string} containerId - Container element ID
+     * @param {Object} options - Configuration options
+     * @returns {Object} Setup result with captcha, form, and controller
+     */
     async quickSetup(containerId, options = {}) {
-      const captcha = new Captcha(options.captcha);
-      const form = CaptchaUI.createForm(containerId);
-      const controller = await CaptchaUI.init(form, captcha, options.callbacks || {});
+      const captcha = new VaultGuardCaptcha(options.captcha);
+      const form = VaultGuardUI.createForm(containerId);
+      const controller = await VaultGuardUI.init(form, captcha, options.callbacks || {});
       
       return {
         captcha,
         form,
         controller
       };
+    },
+    
+    /**
+     * Get version info
+     * @returns {Object} Version information
+     */
+    getVersion() {
+      return {
+        name: VAULTGUARD.name,
+        product: VAULTGUARD.product,
+        version: VAULTGUARD.version,
+        codename: VAULTGUARD.codename,
+        fullVersion: `${VAULTGUARD.name} ${VAULTGUARD.product} v${VAULTGUARD.version} "${VAULTGUARD.codename}"`
+      };
     }
   };
 
   // Export for different environments
   if (typeof module !== 'undefined' && module.exports) {
-    module.exports = CaptchaLib;
+    module.exports = VaultGuard;
   } else if (typeof define === 'function' && define.amd) {
-    define(() => CaptchaLib);
+    define(() => VaultGuard);
   } else {
-    global.CaptchaLib = CaptchaLib;
+    global.VaultGuard = VaultGuard;
   }
 
 })(typeof globalThis !== 'undefined' ? globalThis : 
