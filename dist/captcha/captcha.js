@@ -48,7 +48,11 @@
     version: '1.0.0',
     codename: 'Aegis',
     
-    // Legal page URLs
+    // Base URL for production (GitHub Pages)
+    // Update this when deploying to a different domain
+    baseUrl: 'https://everythingtt.github.io/Utilities/dist/captcha',
+    
+    // Legal page URLs (relative for local dev, will use baseUrl in production)
     urls: {
       privacy: 'privacy.html',
       terms: 'terms.html',
@@ -149,6 +153,81 @@
   };
 
   // ═══════════════════════════════════════════════════════════════════════════════
+  // IMAGE PUZZLE CONFIGURATION
+  // ═══════════════════════════════════════════════════════════════════════════════
+
+  const ImagePuzzles = {
+    baseUrl: 'https://picsum.photos/seed',
+    puzzles: [
+      {
+        id: 'select-all-cars',
+        name: 'Select all cars',
+        question: 'Select all images with cars',
+        folder: 'select-all-cars',
+        correctImages: ['vg-car-1', 'vg-car-2', 'vg-car-3', 'vg-car-4'],
+        incorrectImages: ['vg-tree-1', 'vg-house-1', 'vg-bicycle-1', 'vg-cloud-1', 'vg-sun-1']
+      },
+      {
+        id: 'select-all-traffic-lights',
+        name: 'Select all traffic lights',
+        question: 'Select all images with traffic lights',
+        folder: 'select-all-traffic-lights',
+        correctImages: ['vg-light-1', 'vg-light-2', 'vg-light-3', 'vg-stoplight-1'],
+        incorrectImages: ['vg-streetlamp-1', 'vg-lantern-1', 'vg-headlight-1', 'vg-candle-1', 'vg-flashlight-1']
+      },
+      {
+        id: 'select-all-crosswalks',
+        name: 'Select all crosswalks',
+        question: 'Select all images with crosswalks',
+        folder: 'select-all-crosswalks',
+        correctImages: ['vg-crosswalk-1', 'vg-crosswalk-2', 'vg-zebra-1', 'vg-sidewalk-1'],
+        incorrectImages: ['vg-ladder-1', 'vg-bridge-1', 'vg-stairs-1', 'vg-railroad-1', 'vg-lines-1']
+      },
+      {
+        id: 'select-all-fire-hydrants',
+        name: 'Select all fire hydrants',
+        question: 'Select all images with fire hydrants',
+        folder: 'select-all-fire-hydrants',
+        correctImages: ['vg-hydrant-1', 'vg-hydrant-2', 'vg-hydrant-3'],
+        incorrectImages: ['vg-mailbox-1', 'vg-postbox-1', 'vg-bench-1', 'vg-drain-1', 'vg-manhole-1', 'vg-valve-1']
+      },
+      {
+        id: 'select-all-bicycles',
+        name: 'Select all bicycles',
+        question: 'Select all images with bicycles',
+        folder: 'select-all-bicycles',
+        correctImages: ['vg-bike-1', 'vg-bike-2', 'vg-bike-3'],
+        incorrectImages: ['vg-wheel-1', 'vg-scooter-1', 'vg-unicycle-1', 'vg-tricycle-1', 'vg-motorcycle-1', 'vg-skateboard-1']
+      },
+      {
+        id: 'select-all-stop-signs',
+        name: 'Select all stop signs',
+        question: 'Select all images with stop signs',
+        folder: 'select-all-stop-signs',
+        correctImages: ['vg-stop-1', 'vg-stop-2', 'vg-stop-3'],
+        incorrectImages: ['vg-yield-1', 'vg-warning-1', 'vg-noentry-1', 'vg-caution-1', 'vg-railroad-1', 'vg-speedlimit-1']
+      }
+    ],
+
+    getPuzzle(puzzleId) {
+      return this.puzzles.find(p => p.id === puzzleId) || this.puzzles[0];
+    },
+
+    getRandomPuzzle() {
+      return this.puzzles[CryptoUtils.randomInt(0, this.puzzles.length - 1)];
+    },
+
+    shuffleArray(array) {
+      const shuffled = [...array];
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = CryptoUtils.randomInt(0, i);
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      }
+      return shuffled;
+    }
+  };
+
+  // ═══════════════════════════════════════════════════════════════════════════════
   // CHALLENGE GENERATORS
   // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -227,6 +306,34 @@
       const question = `Complete the pattern: ${pattern.join(' ')} ___`;
       
       return { question, answer };
+    },
+
+    /**
+     * Image puzzle challenge: select all images matching a category
+     * @param {string} puzzleId - Optional specific puzzle ID
+     * @returns {Object} Challenge with question, images, and correct answer indices
+     */
+    imagePuzzle(puzzleId = null) {
+      const puzzle = puzzleId ? ImagePuzzles.getPuzzle(puzzleId) : ImagePuzzles.getRandomPuzzle();
+      
+      const allImages = [
+        ...puzzle.correctImages.map(img => ({ file: img, correct: true })),
+        ...puzzle.incorrectImages.map(img => ({ file: img, correct: false }))
+      ];
+      
+      const shuffledImages = ImagePuzzles.shuffleArray(allImages);
+      const correctIndices = shuffledImages
+        .map((img, index) => img.correct ? index : -1)
+        .filter(index => index !== -1);
+      
+      const imageUrls = shuffledImages.map(img => `${ImagePuzzles.baseUrl}/${img.file}/200/200`);
+      
+      return {
+        question: puzzle.question,
+        images: imageUrls,
+        correctIndices: correctIndices,
+        puzzleId: puzzle.id
+      };
     }
   };
 
@@ -257,7 +364,7 @@
         difficulty: options.difficulty || 'medium',
         expiryTime: options.expiryTime || 300000,
         maxAttempts: options.maxAttempts || 3,
-        challengeTypes: options.challengeTypes || ['math', 'text', 'pattern'],
+        challengeTypes: options.challengeTypes || ['math', 'text', 'pattern', 'imagePuzzle'],
         ...options
       };
 
@@ -278,10 +385,14 @@
       ];
 
       const generator = ChallengeGenerators[challengeType];
-      const challenge = generator();
+      const challenge = challengeType === 'imagePuzzle' ? generator() : generator();
       
       const challengeId = CryptoUtils.generateToken(16);
       const secret = CryptoUtils.generateToken(8);
+      
+      const answerToHash = challengeType === 'imagePuzzle' 
+        ? challenge.correctIndices.join(',') 
+        : challenge.answer.toLowerCase();
       
       const challengeData = {
         id: challengeId,
@@ -291,9 +402,12 @@
         expiryTime: this.options.expiryTime,
         maxAttempts: this.options.maxAttempts,
         secret: secret,
-        answerHash: await CryptoUtils.hash(challenge.answer.toLowerCase() + secret),
+        answerHash: await CryptoUtils.hash(answerToHash + secret),
         attempts: 0,
-        solved: false
+        solved: false,
+        images: challenge.images || null,
+        correctIndices: challenge.correctIndices || null,
+        puzzleId: challenge.puzzleId || null
       };
 
       this.challenges.set(challengeId, challengeData);
@@ -303,7 +417,8 @@
         id: challengeId,
         question: challenge.question,
         type: challengeType,
-        expiresIn: this.options.expiryTime
+        expiresIn: this.options.expiryTime,
+        images: challenge.images || null
       };
     }
 
@@ -355,7 +470,10 @@
 
       this.attempts.set(challengeId, currentAttempts + 1);
 
-      const answerHash = await CryptoUtils.hash(userAnswer.toLowerCase() + challenge.secret);
+      const normalizedAnswer = challenge.type === 'imagePuzzle' 
+        ? userAnswer 
+        : userAnswer.toLowerCase();
+      const answerHash = await CryptoUtils.hash(normalizedAnswer + challenge.secret);
       const isValid = answerHash === challenge.answerHash;
 
       if (isValid) {
@@ -752,6 +870,76 @@
           .vg-attempt-dot.remaining {
             background: ${VAULTGUARD.brandColors.secondary};
           }
+          
+          /* Image Puzzle Styles */
+          .vg-image-puzzle {
+            display: none;
+          }
+          
+          .vg-image-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-bottom: 16px;
+          }
+          
+          .vg-image-cell {
+            aspect-ratio: 1;
+            border: 3px solid ${VAULTGUARD.brandColors.border};
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            overflow: hidden;
+            position: relative;
+            background: ${VAULTGUARD.brandColors.background};
+          }
+          
+          .vg-image-cell:hover {
+            border-color: ${VAULTGUARD.brandColors.secondary};
+            transform: scale(1.02);
+          }
+          
+          .vg-image-cell.selected {
+            border-color: ${VAULTGUARD.brandColors.secondary};
+            box-shadow: 0 0 0 3px rgba(0, 212, 170, 0.3);
+          }
+          
+          .vg-image-cell.selected::after {
+            content: '✓';
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            width: 24px;
+            height: 24px;
+            background: ${VAULTGUARD.brandColors.secondary};
+            color: ${VAULTGUARD.brandColors.primary};
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: bold;
+          }
+          
+          .vg-image-cell img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+          }
+          
+          .vg-image-cell .vg-image-placeholder {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: ${VAULTGUARD.brandColors.textMuted};
+            font-size: 12px;
+          }
+          
+          .vg-verify-button {
+            margin-top: 8px;
+          }
         </style>
         
         <!-- Header -->
@@ -781,17 +969,32 @@
             <div class="vg-question-label">Security Challenge</div>
             <div class="vg-question"></div>
             
-            <div class="vg-input-group">
-              <input type="text" class="vg-input" placeholder="Enter your answer" required autocomplete="off">
+            <!-- Text/Math/Pattern Challenge Input -->
+            <div class="vg-text-challenge">
+              <div class="vg-input-group">
+                <input type="text" class="vg-input" placeholder="Enter your answer" required autocomplete="off">
+              </div>
+              
+              <button type="submit" class="vg-button">
+                <svg class="vg-button-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 2L3 7V12C3 17.5 6.8 22.9 12 24C17.2 22.9 21 17.5 21 12V7L12 2Z"/>
+                  <path d="M8.5 12L11 14.5L15.5 9.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                Verify Identity
+              </button>
             </div>
             
-            <button type="submit" class="vg-button">
-              <svg class="vg-button-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M12 2L3 7V12C3 17.5 6.8 22.9 12 24C17.2 22.9 21 17.5 21 12V7L12 2Z"/>
-                <path d="M8.5 12L11 14.5L15.5 9.5" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-              Verify Identity
-            </button>
+            <!-- Image Puzzle Challenge -->
+            <div class="vg-image-puzzle">
+              <div class="vg-image-grid"></div>
+              <button type="button" class="vg-button vg-verify-button">
+                <svg class="vg-button-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 2L3 7V12C3 17.5 6.8 22.9 12 24C17.2 22.9 21 17.5 21 12V7L12 2Z"/>
+                  <path d="M8.5 12L11 14.5L15.5 9.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                Verify Selection
+              </button>
+            </div>
             
             <div class="vg-attempts">
               <div class="vg-attempt-dot remaining"></div>
@@ -817,8 +1020,8 @@
             <span>Protected by ${VAULTGUARD.name}</span>
           </div>
           <div class="vg-footer-links">
-            <a href="${VAULTGUARD.urls.privacy}" class="vg-footer-link" target="_blank">Privacy</a>
-            <a href="${VAULTGUARD.urls.terms}" class="vg-footer-link" target="_blank">Terms</a>
+            <a href="${VAULTGUARD.baseUrl}/${VAULTGUARD.urls.privacy}" class="vg-footer-link" target="_blank">Privacy</a>
+            <a href="${VAULTGUARD.baseUrl}/${VAULTGUARD.urls.terms}" class="vg-footer-link" target="_blank">Terms</a>
           </div>
         </div>
       `;
@@ -843,6 +1046,10 @@
       const loadingEl = formElement.querySelector('.vg-loading');
       const challengeAreaEl = formElement.querySelector('.vg-challenge-area');
       const questionEl = formElement.querySelector('.vg-question');
+      const textChallengeEl = formElement.querySelector('.vg-text-challenge');
+      const imagePuzzleEl = formElement.querySelector('.vg-image-puzzle');
+      const imageGridEl = formElement.querySelector('.vg-image-grid');
+      const verifyButtonEl = formElement.querySelector('.vg-verify-button');
       const inputEl = formElement.querySelector('.vg-input');
       const buttonEl = formElement.querySelector('.vg-button');
       const messageEl = formElement.querySelector('.vg-message');
@@ -851,6 +1058,7 @@
 
       let currentChallenge = null;
       let attemptsUsed = 0;
+      let selectedImages = [];
 
       const updateAttemptDots = (used, total) => {
         attemptDots.forEach((dot, index) => {
@@ -863,22 +1071,66 @@
         });
       };
 
+      const renderImageGrid = (images) => {
+        imageGridEl.innerHTML = '';
+        selectedImages = [];
+        
+        images.forEach((imgSrc, index) => {
+          const cell = document.createElement('div');
+          cell.className = 'vg-image-cell';
+          cell.dataset.index = index;
+          
+          const img = document.createElement('img');
+          img.src = imgSrc;
+          img.alt = `Image ${index + 1}`;
+          img.onerror = () => {
+            cell.innerHTML = `<div class="vg-image-placeholder">Image ${index + 1}</div>`;
+          };
+          
+          cell.appendChild(img);
+          
+          cell.addEventListener('click', () => {
+            cell.classList.toggle('selected');
+            if (cell.classList.contains('selected')) {
+              selectedImages.push(index);
+            } else {
+              selectedImages = selectedImages.filter(i => i !== index);
+            }
+          });
+          
+          imageGridEl.appendChild(cell);
+        });
+      };
+
       const loadChallenge = async () => {
         loadingEl.style.display = 'block';
         challengeAreaEl.style.display = 'none';
         messageEl.style.display = 'none';
         inputEl.value = '';
         buttonEl.disabled = true;
+        if (verifyButtonEl) verifyButtonEl.disabled = true;
         attemptsUsed = 0;
         updateAttemptDots(0, 3);
+        selectedImages = [];
 
         try {
           currentChallenge = await captchaInstance.generateChallenge();
           questionEl.textContent = currentChallenge.question;
+          
+          if (currentChallenge.type === 'imagePuzzle' && currentChallenge.images) {
+            textChallengeEl.style.display = 'none';
+            imagePuzzleEl.style.display = 'block';
+            renderImageGrid(currentChallenge.images);
+            if (verifyButtonEl) verifyButtonEl.disabled = false;
+          } else {
+            textChallengeEl.style.display = 'block';
+            imagePuzzleEl.style.display = 'none';
+            buttonEl.disabled = false;
+            inputEl.focus();
+          }
+          
           loadingEl.style.display = 'none';
           challengeAreaEl.style.display = 'block';
-          buttonEl.disabled = false;
-          inputEl.focus();
 
           if (callbacks.onChallengeLoaded) {
             callbacks.onChallengeLoaded(currentChallenge);
@@ -896,18 +1148,11 @@
         messageEl.style.display = 'flex';
       };
 
-      formElement.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        
+      const verifyAnswer = async (userAnswer) => {
         if (!currentChallenge) return;
 
-        const userAnswer = inputEl.value.trim();
-        if (!userAnswer) {
-          showMessage('Please enter an answer', 'error');
-          return;
-        }
-
         buttonEl.disabled = true;
+        if (verifyButtonEl) verifyButtonEl.disabled = true;
         showMessage('Verifying...', 'info');
 
         try {
@@ -925,8 +1170,16 @@
             updateAttemptDots(attemptsUsed, maxAttempts);
             
             showMessage(result.error || 'Incorrect answer', 'error');
-            inputEl.value = '';
-            inputEl.focus();
+            
+            if (currentChallenge.type === 'imagePuzzle') {
+              selectedImages = [];
+              document.querySelectorAll('.vg-image-cell').forEach(cell => {
+                cell.classList.remove('selected');
+              });
+            } else {
+              inputEl.value = '';
+              inputEl.focus();
+            }
             
             if (callbacks.onError) {
               callbacks.onError(result, currentChallenge.id);
@@ -936,14 +1189,44 @@
               setTimeout(loadChallenge, 1500);
             } else {
               buttonEl.disabled = false;
+              if (verifyButtonEl) verifyButtonEl.disabled = false;
             }
           }
         } catch (error) {
           showMessage('Verification failed. Please try again.', 'error');
           console.error(`${VAULTGUARD.name} verification error:`, error);
           buttonEl.disabled = false;
+          if (verifyButtonEl) verifyButtonEl.disabled = false;
         }
+      };
+
+      formElement.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        if (!currentChallenge || currentChallenge.type === 'imagePuzzle') return;
+
+        const userAnswer = inputEl.value.trim();
+        if (!userAnswer) {
+          showMessage('Please enter an answer', 'error');
+          return;
+        }
+
+        await verifyAnswer(userAnswer);
       });
+
+      if (verifyButtonEl) {
+        verifyButtonEl.addEventListener('click', async () => {
+          if (!currentChallenge || currentChallenge.type !== 'imagePuzzle') return;
+          
+          if (selectedImages.length === 0) {
+            showMessage('Please select at least one image', 'error');
+            return;
+          }
+
+          const sortedSelection = [...selectedImages].sort((a, b) => a - b);
+          await verifyAnswer(sortedSelection.join(','));
+        });
+      }
 
       await loadChallenge();
 

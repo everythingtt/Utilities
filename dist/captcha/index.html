@@ -265,6 +265,64 @@
       line-height: 1.7;
     }
     
+    /* Image Puzzles Section */
+    .image-puzzles {
+      background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
+      padding: 80px 24px;
+    }
+    
+    .puzzles-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 24px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    .puzzle-card {
+      background: white;
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+      border: 1px solid #e2e8f0;
+      transition: all 0.3s;
+    }
+    
+    .puzzle-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.1);
+    }
+    
+    .puzzle-preview {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+      margin-bottom: 16px;
+      border-radius: 8px;
+      overflow: hidden;
+      background: #f1f5f9;
+      padding: 8px;
+    }
+    
+    .puzzle-preview img {
+      width: 100%;
+      aspect-ratio: 1;
+      object-fit: cover;
+      border-radius: 4px;
+    }
+    
+    .puzzle-card h3 {
+      font-size: 18px;
+      font-weight: 600;
+      color: #1e3a5f;
+      margin-bottom: 8px;
+    }
+    
+    .puzzle-card p {
+      font-size: 14px;
+      color: #64748b;
+    }
+    
     /* Demo Section */
     .demo {
       background: white;
@@ -599,8 +657,8 @@
       <nav class="nav-links">
         <a href="#features">Features</a>
         <a href="#demo">Demo</a>
-        <a href="privacy.html">Privacy</a>
-        <a href="terms.html">Terms</a>
+        <a href="https://everythingtt.github.io/Utilities/dist/captcha/privacy.html">Privacy</a>
+        <a href="https://everythingtt.github.io/Utilities/dist/captcha/terms.html">Terms</a>
         <a href="#demo" class="nav-button">Try Demo</a>
       </nav>
     </div>
@@ -700,6 +758,111 @@
         </div>
         <h3>Easy Integration</h3>
         <p>Drop-in solution with beautiful UI. Works in any modern browser with a single script tag.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Image Puzzles Section -->
+  <section class="image-puzzles" id="puzzles">
+    <div class="section-header">
+      <h2>Image Puzzle Challenges</h2>
+      <p>Select all images that match the category. Our puzzles are designed to be accessible and privacy-friendly.</p>
+    </div>
+    <div class="puzzles-grid">
+      <div class="puzzle-card">
+        <div class="puzzle-preview">
+          <img src="https://picsum.photos/seed/vg-car-1/200/200" alt="Car">
+          <img src="https://picsum.photos/seed/vg-car-2/200/200" alt="Car">
+          <img src="https://picsum.photos/seed/vg-tree-1/200/200" alt="Tree">
+          <img src="https://picsum.photos/seed/vg-car-3/200/200" alt="Car">
+          <img src="https://picsum.photos/seed/vg-house-1/200/200" alt="House">
+          <img src="https://picsum.photos/seed/vg-car-4/200/200" alt="Car">
+          <img src="https://picsum.photos/seed/vg-bicycle-1/200/200" alt="Bicycle">
+          <img src="https://picsum.photos/seed/vg-cloud-1/200/200" alt="Cloud">
+          <img src="https://picsum.photos/seed/vg-sun-1/200/200" alt="Sun">
+        </div>
+        <h3>Select all cars</h3>
+        <p>Click on all images containing cars</p>
+      </div>
+      
+      <div class="puzzle-card">
+        <div class="puzzle-preview">
+          <img src="https://picsum.photos/seed/vg-light-1/200/200" alt="Traffic light">
+          <img src="https://picsum.photos/seed/vg-streetlamp-1/200/200" alt="Street lamp">
+          <img src="https://picsum.photos/seed/vg-light-2/200/200" alt="Traffic light">
+          <img src="https://picsum.photos/seed/vg-lantern-1/200/200" alt="Lantern">
+          <img src="https://picsum.photos/seed/vg-light-3/200/200" alt="Traffic light">
+          <img src="https://picsum.photos/seed/vg-headlight-1/200/200" alt="Headlight">
+          <img src="https://picsum.photos/seed/vg-stoplight-1/200/200" alt="Stop light">
+          <img src="https://picsum.photos/seed/vg-candle-1/200/200" alt="Candle">
+          <img src="https://picsum.photos/seed/vg-flashlight-1/200/200" alt="Flashlight">
+        </div>
+        <h3>Select all traffic lights</h3>
+        <p>Click on all images containing traffic lights</p>
+      </div>
+      
+      <div class="puzzle-card">
+        <div class="puzzle-preview">
+          <img src="https://picsum.photos/seed/vg-crosswalk-1/200/200" alt="Crosswalk">
+          <img src="https://picsum.photos/seed/vg-ladder-1/200/200" alt="Ladder">
+          <img src="https://picsum.photos/seed/vg-crosswalk-2/200/200" alt="Crosswalk">
+          <img src="https://picsum.photos/seed/vg-bridge-1/200/200" alt="Bridge">
+          <img src="https://picsum.photos/seed/vg-zebra-1/200/200" alt="Zebra crossing">
+          <img src="https://picsum.photos/seed/vg-stairs-1/200/200" alt="Stairs">
+          <img src="https://picsum.photos/seed/vg-sidewalk-1/200/200" alt="Sidewalk">
+          <img src="https://picsum.photos/seed/vg-railroad-1/200/200" alt="Railroad">
+          <img src="https://picsum.photos/seed/vg-lines-1/200/200" alt="Lines">
+        </div>
+        <h3>Select all crosswalks</h3>
+        <p>Click on all images containing crosswalks</p>
+      </div>
+      
+      <div class="puzzle-card">
+        <div class="puzzle-preview">
+          <img src="https://picsum.photos/seed/vg-mailbox-1/200/200" alt="Mailbox">
+          <img src="https://picsum.photos/seed/vg-hydrant-1/200/200" alt="Fire hydrant">
+          <img src="https://picsum.photos/seed/vg-postbox-1/200/200" alt="Postbox">
+          <img src="https://picsum.photos/seed/vg-hydrant-2/200/200" alt="Fire hydrant">
+          <img src="https://picsum.photos/seed/vg-bench-1/200/200" alt="Bench">
+          <img src="https://picsum.photos/seed/vg-hydrant-3/200/200" alt="Fire hydrant">
+          <img src="https://picsum.photos/seed/vg-drain-1/200/200" alt="Drain">
+          <img src="https://picsum.photos/seed/vg-manhole-1/200/200" alt="Manhole">
+          <img src="https://picsum.photos/seed/vg-valve-1/200/200" alt="Valve">
+        </div>
+        <h3>Select all fire hydrants</h3>
+        <p>Click on all images containing fire hydrants</p>
+      </div>
+      
+      <div class="puzzle-card">
+        <div class="puzzle-preview">
+          <img src="https://picsum.photos/seed/vg-wheel-1/200/200" alt="Wheel">
+          <img src="https://picsum.photos/seed/vg-bike-1/200/200" alt="Bicycle">
+          <img src="https://picsum.photos/seed/vg-scooter-1/200/200" alt="Scooter">
+          <img src="https://picsum.photos/seed/vg-bike-2/200/200" alt="Bicycle">
+          <img src="https://picsum.photos/seed/vg-unicycle-1/200/200" alt="Unicycle">
+          <img src="https://picsum.photos/seed/vg-bike-3/200/200" alt="Bicycle">
+          <img src="https://picsum.photos/seed/vg-tricycle-1/200/200" alt="Tricycle">
+          <img src="https://picsum.photos/seed/vg-motorcycle-1/200/200" alt="Motorcycle">
+          <img src="https://picsum.photos/seed/vg-skateboard-1/200/200" alt="Skateboard">
+        </div>
+        <h3>Select all bicycles</h3>
+        <p>Click on all images containing bicycles</p>
+      </div>
+      
+      <div class="puzzle-card">
+        <div class="puzzle-preview">
+          <img src="https://picsum.photos/seed/vg-yield-1/200/200" alt="Yield sign">
+          <img src="https://picsum.photos/seed/vg-stop-1/200/200" alt="Stop sign">
+          <img src="https://picsum.photos/seed/vg-warning-1/200/200" alt="Warning sign">
+          <img src="https://picsum.photos/seed/vg-stop-2/200/200" alt="Stop sign">
+          <img src="https://picsum.photos/seed/vg-noentry-1/200/200" alt="No entry">
+          <img src="https://picsum.photos/seed/vg-stop-3/200/200" alt="Stop sign">
+          <img src="https://picsum.photos/seed/vg-caution-1/200/200" alt="Caution">
+          <img src="https://picsum.photos/seed/vg-railroad-1/200/200" alt="Railroad crossing">
+          <img src="https://picsum.photos/seed/vg-speedlimit-1/200/200" alt="Speed limit">
+        </div>
+        <h3>Select all stop signs</h3>
+        <p>Click on all images containing stop signs</p>
       </div>
     </div>
   </section>
@@ -836,9 +999,9 @@
         <span class="footer-text">Protected by VaultGuard™ CAPTCHA</span>
       </div>
       <nav class="footer-links">
-        <a href="index.html">Home</a>
-        <a href="privacy.html">Privacy Policy</a>
-        <a href="terms.html">Terms of Service</a>
+        <a href="https://everythingtt.github.io/Utilities/dist/captcha/">Home</a>
+        <a href="https://everythingtt.github.io/Utilities/dist/captcha/privacy.html">Privacy Policy</a>
+        <a href="https://everythingtt.github.io/Utilities/dist/captcha/terms.html">Terms of Service</a>
       </nav>
       <div class="footer-copyright">
         © 2024 VaultGuard Technologies. All rights reserved.
