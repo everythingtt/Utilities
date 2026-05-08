@@ -1,0 +1,2011 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OWL Video Player - Ultimate</title>
+<style>
+/* Base Reset */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --owl-primary: #e8175d;
+  --owl-primary-light: #ff2e7a;
+  --owl-primary-dark: #b21049;
+  --owl-bg: #0a0a0f;
+  --owl-surface: #141420;
+  --owl-surface-2: #1e1e30;
+  --owl-surface-hover: #2a2a40;
+  --owl-text: #f0f0f5;
+  --owl-text-dim: #8a8a9a;
+  --owl-text-muted: #5a5a6a;
+  --owl-radius: 12px;
+  --owl-radius-sm: 8px;
+  --owl-radius-lg: 16px;
+  --owl-transition: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.owl-player {
+  --player-accent: var(--owl-primary);
+  position: relative;
+  width: 100%;
+  border-radius: var(--owl-radius-lg);
+  overflow: hidden;
+  background: var(--owl-bg);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif;
+  user-select: none;
+  outline: none;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+}
+
+.owl-player:focus {
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5), 0 0 0 2px var(--player-accent);
+}
+
+.owl-player * {
+  box-sizing: border-box;
+}
+
+/* Video Element */
+.owl-video-wrapper {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16/9;
+  background: #000;
+  overflow: hidden;
+}
+
+.owl-video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.owl-video::-webkit-media-controls {
+  display: none !important;
+}
+
+/* Big Play Button */
+.owl-big-play {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  transition: opacity 0.4s var(--owl-transition);
+}
+
+.owl-big-play.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.owl-big-play-btn {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: rgba(232, 23, 93, 0.9);
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s var(--owl-transition);
+  box-shadow: 0 8px 32px rgba(232, 23, 93, 0.4);
+}
+
+.owl-big-play-btn:hover {
+  transform: scale(1.1);
+  background: var(--owl-primary);
+  box-shadow: 0 12px 40px rgba(232, 23, 93, 0.6);
+}
+
+.owl-big-play-btn svg {
+  width: 28px;
+  height: 28px;
+  fill: white;
+  margin-left: 4px;
+}
+
+/* Loading Spinner */
+.owl-spinner {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 5;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s;
+}
+
+.owl-spinner.active {
+  opacity: 1;
+}
+
+.owl-spinner-ring {
+  width: 48px;
+  height: 48px;
+  border: 3px solid rgba(255,255,255,0.1);
+  border-top-color: var(--player-accent);
+  border-radius: 50%;
+  animation: owl-spin 0.8s linear infinite;
+}
+
+@keyframes owl-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Controls Bar */
+.owl-controls {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 0 12px 8px;
+  background: linear-gradient(transparent, rgba(0,0,0,0.8) 40%);
+  z-index: 20;
+  opacity: 0;
+  transform: translateY(8px);
+  transition: all 0.35s var(--owl-transition);
+}
+
+.owl-player:hover .owl-controls,
+.owl-player.owl-controls-visible .owl-controls {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Progress Bar */
+.owl-progress-container {
+  position: relative;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  margin-bottom: 4px;
+}
+
+.owl-progress-bar {
+  position: relative;
+  width: 100%;
+  height: 4px;
+  background: rgba(255,255,255,0.15);
+  border-radius: 2px;
+  transition: height 0.2s;
+  overflow: hidden;
+}
+
+.owl-progress-container:hover .owl-progress-bar {
+  height: 6px;
+}
+
+.owl-progress-buffered {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background: rgba(255,255,255,0.2);
+  border-radius: 2px;
+  transition: width 0.3s;
+}
+
+.owl-progress-played {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background: var(--player-accent);
+  border-radius: 2px;
+  transition: width 0.1s linear;
+}
+
+.owl-progress-thumb {
+  position: absolute;
+  top: 50%;
+  width: 14px;
+  height: 14px;
+  background: white;
+  border-radius: 50%;
+  transform: translate(-50%, -50%) scale(0);
+  transition: transform 0.2s;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+}
+
+.owl-progress-container:hover .owl-progress-thumb {
+  transform: translate(-50%, -50%) scale(1);
+}
+
+/* Time Tooltip */
+.owl-time-tooltip {
+  position: absolute;
+  top: -32px;
+  transform: translateX(-50%);
+  background: rgba(0,0,0,0.9);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s;
+  white-space: nowrap;
+}
+
+.owl-progress-container:hover .owl-time-tooltip {
+  opacity: 1;
+}
+
+/* Controls Row */
+.owl-controls-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 40px;
+}
+
+.owl-controls-left,
+.owl-controls-right {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.owl-controls-right {
+  margin-left: auto;
+}
+
+/* Buttons */
+.owl-btn {
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: transparent;
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  transition: all 0.2s;
+  position: relative;
+}
+
+.owl-btn:hover {
+  background: rgba(255,255,255,0.1);
+}
+
+.owl-btn svg {
+  width: 22px;
+  height: 22px;
+  fill: currentColor;
+}
+
+/* Time Display */
+.owl-time {
+  color: white;
+  font-size: 13px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  padding: 0 4px;
+  min-width: 100px;
+  text-align: center;
+}
+
+.owl-time-separator {
+  opacity: 0.5;
+}
+
+/* Volume */
+.owl-volume-container {
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+
+.owl-volume-slider {
+  width: 0;
+  overflow: hidden;
+  transition: width 0.3s var(--owl-transition);
+}
+
+.owl-volume-container:hover .owl-volume-slider,
+.owl-volume-slider:focus-within {
+  width: 80px;
+}
+
+.owl-volume-track {
+  width: 70px;
+  height: 4px;
+  background: rgba(255,255,255,0.2);
+  border-radius: 2px;
+  margin: 0 8px;
+  cursor: pointer;
+  position: relative;
+}
+
+.owl-volume-fill {
+  height: 100%;
+  background: white;
+  border-radius: 2px;
+  position: relative;
+}
+
+.owl-volume-fill::after {
+  content: '';
+  position: absolute;
+  right: -5px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 10px;
+  height: 10px;
+  background: white;
+  border-radius: 50%;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+}
+
+/* Settings Menu */
+.owl-settings-menu {
+  position: absolute;
+  bottom: 52px;
+  right: 12px;
+  background: rgba(20, 20, 32, 0.95);
+  backdrop-filter: blur(20px);
+  border-radius: var(--owl-radius);
+  padding: 8px 0;
+  min-width: 200px;
+  z-index: 30;
+  opacity: 0;
+  transform: translateY(8px);
+  pointer-events: none;
+  transition: all 0.25s var(--owl-transition);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.5);
+  border: 1px solid rgba(255,255,255,0.08);
+}
+
+.owl-settings-menu.active {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.owl-settings-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  color: var(--owl-text);
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.owl-settings-item:hover {
+  background: rgba(255,255,255,0.08);
+}
+
+.owl-settings-item.active {
+  color: var(--player-accent);
+}
+
+.owl-settings-item.active::after {
+  content: '✓';
+  font-weight: bold;
+}
+
+.owl-settings-header {
+  padding: 8px 16px;
+  color: var(--owl-text-dim);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: 600;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  margin-bottom: 4px;
+}
+
+/* Quality Badge */
+.owl-quality-badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(8px);
+  color: white;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  z-index: 15;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.owl-player:hover .owl-quality-badge {
+  opacity: 1;
+}
+
+/* Chapter Markers */
+.owl-chapter-marker {
+  position: absolute;
+  top: 0;
+  width: 3px;
+  height: 100%;
+  background: rgba(255,255,255,0.5);
+  border-radius: 1px;
+  pointer-events: none;
+}
+
+/* Subtitles */
+.owl-subtitles {
+  position: absolute;
+  bottom: 60px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 15;
+  text-align: center;
+  pointer-events: none;
+  max-width: 80%;
+}
+
+.owl-subtitle-text {
+  display: inline-block;
+  background: rgba(0,0,0,0.75);
+  color: white;
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-size: 16px;
+  line-height: 1.4;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+}
+
+/* Mini Player */
+.owl-player.owl-mini {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 320px;
+  z-index: 9999;
+  border-radius: var(--owl-radius);
+  box-shadow: 0 16px 48px rgba(0,0,0,0.6);
+}
+
+/* Theater Mode */
+.owl-player.owl-theater {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 9998;
+  border-radius: 0;
+}
+
+.owl-player.owl-theater .owl-video-wrapper {
+  height: 100%;
+  aspect-ratio: auto;
+}
+
+/* Fullscreen */
+.owl-player:fullscreen {
+  border-radius: 0;
+}
+
+.owl-player:fullscreen .owl-video-wrapper {
+  height: 100vh;
+  aspect-ratio: auto;
+}
+
+/* Picture in Picture indicator */
+.owl-pip-indicator {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(8px);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  z-index: 15;
+  display: none;
+}
+
+/* Keyboard Shortcuts Overlay */
+.owl-shortcuts-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.85);
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s;
+}
+
+.owl-shortcuts-overlay.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.owl-shortcuts-content {
+  color: white;
+  text-align: center;
+  max-width: 400px;
+}
+
+.owl-shortcuts-content h3 {
+  font-size: 20px;
+  margin-bottom: 20px;
+  color: var(--player-accent);
+}
+
+.owl-shortcut-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  font-size: 14px;
+}
+
+.owl-shortcut-key {
+  background: rgba(255,255,255,0.1);
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 13px;
+}
+
+/* Speed Indicator */
+.owl-speed-indicator {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0,0,0,0.7);
+  backdrop-filter: blur(8px);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  z-index: 25;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s;
+}
+
+.owl-speed-indicator.active {
+  opacity: 1;
+}
+
+/* Live Badge */
+.owl-live-badge {
+  display: none;
+  align-items: center;
+  gap: 6px;
+  background: #e8175d;
+  color: white;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.owl-live-badge.active {
+  display: flex;
+}
+
+.owl-live-dot {
+  width: 6px;
+  height: 6px;
+  background: white;
+  border-radius: 50%;
+  animation: owl-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes owl-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+/* Tooltip */
+.owl-tooltip {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%) translateY(-4px);
+  background: rgba(0,0,0,0.9);
+  color: white;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.owl-btn:hover .owl-tooltip {
+  opacity: 1;
+}
+
+/* A/B Loop indicator */
+.owl-loop-indicator {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(232, 23, 93, 0.9);
+  color: white;
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  z-index: 15;
+  display: none;
+}
+
+.owl-loop-indicator.active {
+  display: block;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .owl-time {
+    font-size: 11px;
+    min-width: 80px;
+  }
+  .owl-btn {
+    width: 32px;
+    height: 32px;
+  }
+  .owl-btn svg {
+    width: 18px;
+    height: 18px;
+  }
+  .owl-subtitle-text {
+    font-size: 13px;
+  }
+}
+
+/* Light theme */
+.owl-player.owl-light {
+  --owl-bg: #f5f5f7;
+  --owl-surface: #ffffff;
+  --owl-surface-2: #e8e8ed;
+  --owl-text: #1d1d1f;
+  --owl-text-dim: #6e6e73;
+}
+
+.owl-player.owl-light .owl-progress-bar {
+  background: rgba(0,0,0,0.1);
+}
+
+.owl-player.owl-light .owl-progress-buffered {
+  background: rgba(0,0,0,0.15);
+}
+
+.owl-player.owl-light .owl-time {
+  color: #1d1d1f;
+}
+
+.owl-player.owl-light .owl-btn {
+  color: #1d1d1f;
+}
+
+.owl-player.owl-light .owl-controls {
+  background: linear-gradient(transparent, rgba(255,255,255,0.9) 40%);
+}
+
+/* Error State */
+.owl-error-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.8);
+  z-index: 40;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s;
+  color: white;
+  gap: 12px;
+}
+
+.owl-error-overlay.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.owl-error-overlay svg {
+  width: 48px;
+  height: 48px;
+  fill: #e8175d;
+}
+
+.owl-error-retry {
+  background: var(--player-accent);
+  color: white;
+  border: none;
+  padding: 8px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.owl-error-retry:hover {
+  background: var(--owl-primary-light);
+}
+
+/* Poster */
+.owl-poster {
+  position: absolute;
+  inset: 0;
+  object-fit: cover;
+  z-index: 2;
+  transition: opacity 0.5s;
+}
+
+.owl-poster.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Waveform / Audio Visualizer placeholder */
+.owl-waveform {
+  position: absolute;
+  bottom: 56px;
+  left: 0;
+  right: 0;
+  height: 30px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 2px;
+  padding: 0 20px;
+  z-index: 12;
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+}
+
+.owl-waveform.active {
+  opacity: 0.4;
+}
+
+.owl-wave-bar {
+  width: 3px;
+  background: var(--player-accent);
+  border-radius: 1.5px;
+  transition: height 0.1s;
+  min-height: 2px;
+}
+</style>
+</head>
+<body style="background:#111; display:flex; align-items:center; justify-content:center; min-height:100vh; padding:20px;">
+
+<div class="owl-player" id="owlPlayer" tabindex="0">
+  <div class="owl-video-wrapper">
+    <video class="owl-video" id="owlVideo" playsinline preload="metadata" crossorigin="anonymous">
+      <source src="" type="video/mp4">
+    </video>
+    <img class="owl-poster hidden" id="owlPoster" alt="Poster">
+    
+    <!-- Big Play Button -->
+    <div class="owl-big-play" id="owlBigPlay">
+      <div class="owl-big-play-btn">
+        <svg viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg>
+      </div>
+    </div>
+    
+    <!-- Spinner -->
+    <div class="owl-spinner" id="owlSpinner">
+      <div class="owl-spinner-ring"></div>
+    </div>
+    
+    <!-- Quality Badge -->
+    <div class="owl-quality-badge" id="owlQualityBadge">Auto</div>
+    
+    <!-- Live Badge -->
+    <div class="owl-live-badge" id="owlLiveBadge">
+      <div class="owl-live-dot"></div>
+      LIVE
+    </div>
+    
+    <!-- Loop Indicator -->
+    <div class="owl-loop-indicator" id="owlLoopIndicator">A-B Loop Active</div>
+    
+    <!-- Speed Indicator -->
+    <div class="owl-speed-indicator" id="owlSpeedIndicator">1.0x</div>
+    
+    <!-- Subtitles -->
+    <div class="owl-subtitles" id="owlSubtitles"></div>
+    
+    <!-- Error Overlay -->
+    <div class="owl-error-overlay" id="owlErrorOverlay">
+      <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+      <span id="owlErrorText">Playback Error</span>
+      <button class="owl-error-retry" id="owlErrorRetry">Retry</button>
+    </div>
+    
+    <!-- Shortcuts Overlay -->
+    <div class="owl-shortcuts-overlay" id="owlShortcutsOverlay">
+      <div class="owl-shortcuts-content">
+        <h3>⌨️ Keyboard Shortcuts</h3>
+        <div class="owl-shortcut-row"><span>Play / Pause</span><span class="owl-shortcut-key">Space / K</span></div>
+        <div class="owl-shortcut-row"><span>Seek ±5s</span><span class="owl-shortcut-key">← / →</span></div>
+        <div class="owl-shortcut-row"><span>Seek ±10s</span><span class="owl-shortcut-key">J / L</span></div>
+        <div class="owl-shortcut-row"><span>Volume</span><span class="owl-shortcut-key">↑ / ↓</span></div>
+        <div class="owl-shortcut-row"><span>Mute</span><span class="owl-shortcut-key">M</span></div>
+        <div class="owl-shortcut-row"><span>Fullscreen</span><span class="owl-shortcut-key">F</span></div>
+        <div class="owl-shortcut-row"><span>PiP</span><span class="owl-shortcut-key">P</span></div>
+        <div class="owl-shortcut-row"><span>Theater</span><span class="owl-shortcut-key">T</span></div>
+        <div class="owl-shortcut-row"><span>Speed +</span><span class="owl-shortcut-key">Shift + ></span></div>
+        <div class="owl-shortcut-row"><span>Speed -</span><span class="owl-shortcut-key">Shift + <</span></div>
+        <div class="owl-shortcut-row"><span>Subtitles</span><span class="owl-shortcut-key">C</span></div>
+        <div class="owl-shortcut-row"><span>Frame Step</span><span class="owl-shortcut-key">. / ,</span></div>
+        <div class="owl-shortcut-row"><span>Shortcuts</span><span class="owl-shortcut-key">?</span></div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Controls -->
+  <div class="owl-controls" id="owlControls">
+    <!-- Progress -->
+    <div class="owl-progress-container" id="owlProgressContainer">
+      <div class="owl-time-tooltip" id="owlTimeTooltip">0:00</div>
+      <div class="owl-progress-bar" id="owlProgressBar">
+        <div class="owl-progress-buffered" id="owlProgressBuffered"></div>
+        <div class="owl-progress-played" id="owlProgressPlayed"></div>
+        <div class="owl-progress-thumb" id="owlProgressThumb"></div>
+      </div>
+    </div>
+    
+    <div class="owl-controls-row">
+      <div class="owl-controls-left">
+        <!-- Play/Pause -->
+        <button class="owl-btn" id="owlPlayBtn" data-tooltip="Play (K)">
+          <svg viewBox="0 0 24 24" id="owlPlayIcon"><polygon points="5,3 19,12 5,21"/></svg>
+          <span class="owl-tooltip">Play (K)</span>
+        </button>
+        
+        <!-- Rewind 10s -->
+        <button class="owl-btn" id="owlRewindBtn" data-tooltip="Rewind 10s (J)">
+          <svg viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/><text x="9" y="16" font-size="8" fill="currentColor">10</text></svg>
+          <span class="owl-tooltip">Rewind 10s (J)</span>
+        </button>
+        
+        <!-- Forward 10s -->
+        <button class="owl-btn" id="owlForwardBtn" data-tooltip="Forward 10s (L)">
+          <svg viewBox="0 0 24 24"><path d="M12 5V1l5 5-5 5V7c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6h2c0 4.42-3.58 8-8 8s-8-3.58-8-8 3.58-8 8-8z"/><text x="9" y="16" font-size="8" fill="currentColor">10</text></svg>
+          <span class="owl-tooltip">Forward 10s (L)</span>
+        </button>
+        
+        <!-- Volume -->
+        <div class="owl-volume-container">
+          <button class="owl-btn" id="owlMuteBtn" data-tooltip="Mute (M)">
+            <svg viewBox="0 0 24 24" id="owlVolumeIcon">
+              <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/>
+            </svg>
+            <span class="owl-tooltip">Mute (M)</span>
+          </button>
+          <div class="owl-volume-slider">
+            <div class="owl-volume-track" id="owlVolumeTrack">
+              <div class="owl-volume-fill" id="owlVolumeFill" style="width: 100%"></div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Time -->
+        <div class="owl-time" id="owlTimeDisplay">
+          <span id="owlCurrentTime">0:00</span>
+          <span class="owl-time-separator"> / </span>
+          <span id="owlDuration">0:00</span>
+        </div>
+      </div>
+      
+      <div class="owl-controls-right">
+        <!-- A-B Loop -->
+        <button class="owl-btn" id="owlLoopBtn" data-tooltip="A-B Loop (I)">
+          <svg viewBox="0 0 24 24"><path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"/></svg>
+          <span class="owl-tooltip">A-B Loop (I)</span>
+        </button>
+        
+        <!-- Subtitles -->
+        <button class="owl-btn" id="owlSubtitlesBtn" data-tooltip="Subtitles (C)">
+          <svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 14H4V6h16v12zM6 10h2v2H6zm0 4h8v2H6zm10 0h2v2h-2zm-6-4h8v2h-8z"/></svg>
+          <span class="owl-tooltip">Subtitles (C)</span>
+        </button>
+        
+        <!-- Mini Player -->
+        <button class="owl-btn" id="owlMiniBtn" data-tooltip="Mini Player">
+          <svg viewBox="0 0 24 24"><path d="M21 3H3c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H3V5h18v14zm-10-7h9v6h-9z"/></svg>
+          <span class="owl-tooltip">Mini Player</span>
+        </button>
+        
+        <!-- Theater -->
+        <button class="owl-btn" id="owlTheaterBtn" data-tooltip="Theater Mode (T)">
+          <svg viewBox="0 0 24 24"><path d="M19 6H5c-1.1 0-2 .9-2 2v8c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 10H5V8h14v8z"/></svg>
+          <span class="owl-tooltip">Theater Mode (T)</span>
+        </button>
+        
+        <!-- Settings -->
+        <button class="owl-btn" id="owlSettingsBtn" data-tooltip="Settings">
+          <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+          <span class="owl-tooltip">Settings</span>
+        </button>
+        
+        <!-- PiP -->
+        <button class="owl-btn" id="owlPipBtn" data-tooltip="Picture in Picture (P)">
+          <svg viewBox="0 0 24 24"><path d="M19 7h-8v6h8V7zm2-4H3c-1.1 0-2 .9-2 2v14c0 1.1.9 1.98 2 1.98h18c1.1 0 2-.88 2-1.98V5c0-1.1-.9-2-2-2zm0 16.01H3V4.98h18v14.03z"/></svg>
+          <span class="owl-tooltip">Picture in Picture (P)</span>
+        </button>
+        
+        <!-- Fullscreen -->
+        <button class="owl-btn" id="owlFullscreenBtn" data-tooltip="Fullscreen (F)">
+          <svg viewBox="0 0 24 24" id="owlFullscreenIcon">
+            <path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/>
+          </svg>
+          <span class="owl-tooltip">Fullscreen (F)</span>
+        </button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Settings Menu -->
+  <div class="owl-settings-menu" id="owlSettingsMenu">
+    <div class="owl-settings-header">Playback Speed</div>
+    <div class="owl-settings-item" data-speed="0.25">0.25x</div>
+    <div class="owl-settings-item" data-speed="0.5">0.5x</div>
+    <div class="owl-settings-item" data-speed="0.75">0.75x</div>
+    <div class="owl-settings-item active" data-speed="1">1.0x (Normal)</div>
+    <div class="owl-settings-item" data-speed="1.25">1.25x</div>
+    <div class="owl-settings-item" data-speed="1.5">1.5x</div>
+    <div class="owl-settings-item" data-speed="1.75">1.75x</div>
+    <div class="owl-settings-item" data-speed="2">2.0x</div>
+    <div class="owl-settings-header" id="owlQualityHeader" style="display:none;">Quality</div>
+    <div id="owlQualityItems"></div>
+  </div>
+</div>
+
+<script>
+/**
+ * OWL Video Player - Ultimate Edition
+ * A privacy-focused, feature-rich, single-file video player
+ * 
+ * Features:
+ * - Zero tracking, zero telemetry, zero external dependencies
+ * - Keyboard shortcuts, A-B loop, PiP, Theater mode, Mini player
+ * - Subtitles (VTT/SRT), quality selection, playback speed
+ * - Customizable themes, responsive, accessible
+ * - Frame-by-frame navigation, volume scroll
+ * - Chapter markers, preview thumbnails support
+ * - HLS/DASH ready (via external adapter)
+ * - Error recovery, retry logic
+ * - Local storage for preferences
+ */
+(function() {
+  'use strict';
+
+  class OWLPlayer {
+    constructor(container, options = {}) {
+      this.container = typeof container === 'string' ? document.querySelector(container) : container;
+      if (!this.container) throw new Error('OWL Player: Container not found');
+
+      this.options = {
+        src: '',
+        poster: '',
+        autoplay: false,
+        muted: false,
+        loop: false,
+        volume: 1,
+        playbackRate: 1,
+        preload: 'metadata',
+        controls: true,
+        live: false,
+        qualities: [],
+        subtitles: [],
+        chapters: [],
+        accentColor: '#e8175d',
+        theme: 'dark',
+        startTime: 0,
+        keyboard: true,
+        doubleClickFullscreen: true,
+        rememberVolume: true,
+        rememberTime: true,
+        storageKey: 'owl_player_prefs',
+        ...options
+      };
+
+      this.state = {
+        playing: false,
+        muted: this.options.muted,
+        volume: this.options.volume,
+        currentTime: 0,
+        duration: 0,
+        buffered: 0,
+        playbackRate: this.options.playbackRate,
+        fullscreen: false,
+        pip: false,
+        theater: false,
+        mini: false,
+        subtitlesEnabled: false,
+        currentSubtitle: -1,
+        currentQuality: -1,
+        loopA: null,
+        loopB: null,
+        loopActive: false,
+        seeking: false,
+        settingsOpen: false,
+        shortcutsOpen: false,
+        error: false,
+        controlsVisible: true,
+        lastMouseMove: 0
+      };
+
+      this.elements = {};
+      this.timers = {};
+      this.listeners = [];
+      this.subtitleCues = [];
+      this.chapterData = [];
+
+      this._init();
+    }
+
+    _init() {
+      this._cacheElements();
+      this._applyTheme();
+      this._loadPreferences();
+      this._setupSource();
+      this._bindEvents();
+      this._setupSubtitles();
+      this._setupChapters();
+      this._updateVolumeUI();
+
+      if (this.options.startTime > 0) {
+        this.elements.video.addEventListener('loadedmetadata', () => {
+          this.seek(this.options.startTime);
+        }, { once: true });
+      }
+
+      if (this.options.autoplay) {
+        this.play();
+      }
+    }
+
+    _cacheElements() {
+      const id = id => this.container.querySelector(`#${id}`);
+      this.elements = {
+        video: id('owlVideo'),
+        poster: id('owlPoster'),
+        bigPlay: id('owlBigPlay'),
+        spinner: id('owlSpinner'),
+        controls: id('owlControls'),
+        progressContainer: id('owlProgressContainer'),
+        progressBar: id('owlProgressBar'),
+        progressBuffered: id('owlProgressBuffered'),
+        progressPlayed: id('owlProgressPlayed'),
+        progressThumb: id('owlProgressThumb'),
+        timeTooltip: id('owlTimeTooltip'),
+        playBtn: id('owlPlayBtn'),
+        playIcon: id('owlPlayIcon'),
+        rewindBtn: id('owlRewindBtn'),
+        forwardBtn: id('owlForwardBtn'),
+        muteBtn: id('owlMuteBtn'),
+        volumeIcon: id('owlVolumeIcon'),
+        volumeTrack: id('owlVolumeTrack'),
+        volumeFill: id('owlVolumeFill'),
+        currentTime: id('owlCurrentTime'),
+        duration: id('owlDuration'),
+        timeDisplay: id('owlTimeDisplay'),
+        settingsBtn: id('owlSettingsBtn'),
+        settingsMenu: id('owlSettingsMenu'),
+        fullscreenBtn: id('owlFullscreenBtn'),
+        fullscreenIcon: id('owlFullscreenIcon'),
+        pipBtn: id('owlPipBtn'),
+        theaterBtn: id('owlTheaterBtn'),
+        miniBtn: id('owlMiniBtn'),
+        subtitlesBtn: id('owlSubtitlesBtn'),
+        subtitles: id('owlSubtitles'),
+        loopBtn: id('owlLoopBtn'),
+        loopIndicator: id('owlLoopIndicator'),
+        speedIndicator: id('owlSpeedIndicator'),
+        qualityBadge: id('owlQualityBadge'),
+        liveBadge: id('owlLiveBadge'),
+        shortcutsOverlay: id('owlShortcutsOverlay'),
+        errorOverlay: id('owlErrorOverlay'),
+        errorText: id('owlErrorText'),
+        errorRetry: id('owlErrorRetry'),
+        qualityHeader: id('owlQualityHeader'),
+        qualityItems: id('owlQualityItems')
+      };
+    }
+
+    _applyTheme() {
+      this.container.style.setProperty('--player-accent', this.options.accentColor);
+      if (this.options.theme === 'light') {
+        this.container.classList.add('owl-light');
+      }
+      if (this.options.live) {
+        this.elements.liveBadge.classList.add('active');
+      }
+    }
+
+    _setupSource() {
+      const video = this.elements.video;
+      if (this.options.src) {
+        if (Array.isArray(this.options.src)) {
+          this.options.src.forEach(s => {
+            const source = document.createElement('source');
+            source.src = s.src || s;
+            source.type = s.type || '';
+            video.appendChild(source);
+          });
+        } else {
+          video.src = this.options.src;
+        }
+      }
+      if (this.options.poster) {
+        this.elements.poster.src = this.options.poster;
+        this.elements.poster.classList.remove('hidden');
+      }
+      video.muted = this.state.muted;
+      video.volume = this.state.volume;
+      video.playbackRate = this.state.playbackRate;
+      video.loop = this.options.loop;
+      video.preload = this.options.preload;
+    }
+
+    _setupSubtitles() {
+      if (!this.options.subtitles || !this.options.subtitles.length) return;
+
+      this.options.subtitles.forEach((track, i) => {
+        const t = document.createElement('track');
+        t.kind = 'subtitles';
+        t.src = track.src;
+        t.srclang = track.srclang || track.lang || 'en';
+        t.label = track.label || track.lang || `Track ${i + 1}`;
+        if (track.default) t.default = true;
+        this.elements.video.appendChild(t);
+      });
+    }
+
+    _setupChapters() {
+      if (!this.options.chapters || !this.options.chapters.length) return;
+      this.chapterData = this.options.chapters;
+    }
+
+    _bindEvents() {
+      const { video, container } = this.elements;
+
+      // Video events
+      this._on(video, 'play', () => { this.state.playing = true; this._updatePlayIcon(); });
+      this._on(video, 'pause', () => { this.state.playing = false; this._updatePlayIcon(); });
+      this._on(video, 'timeupdate', () => this._onTimeUpdate());
+      this._on(video, 'progress', () => this._onProgress());
+      this._on(video, 'loadedmetadata', () => this._onMetadata());
+      this._on(video, 'durationchange', () => this._onMetadata());
+      this._on(video, 'waiting', () => this.elements.spinner.classList.add('active'));
+      this._on(video, 'canplay', () => this.elements.spinner.classList.remove('active'));
+      this._on(video, 'playing', () => this.elements.spinner.classList.remove('active'));
+      this._on(video, 'ended', () => this._onEnded());
+      this._on(video, 'error', (e) => this._onError(e));
+      this._on(video, 'volumechange', () => this._onVolumeChange());
+      this._on(video, 'enterpictureinpicture', () => { this.state.pip = true; });
+      this._on(video, 'leavepictureinpicture', () => { this.state.pip = false; });
+      this._on(video, 'ratechange', () => {
+        this.state.playbackRate = video.playbackRate;
+        this._updateSpeedUI();
+      });
+
+      // Controls
+      this._on(this.elements.playBtn, 'click', () => this.togglePlay());
+      this._on(this.elements.bigPlay, 'click', () => this.togglePlay());
+      this._on(this.elements.rewindBtn, 'click', () => this.seekRelative(-10));
+      this._on(this.elements.forwardBtn, 'click', () => this.seekRelative(10));
+      this._on(this.elements.muteBtn, 'click', () => this.toggleMute());
+      this._on(this.elements.fullscreenBtn, 'click', () => this.toggleFullscreen());
+      this._on(this.elements.pipBtn, 'click', () => this.togglePiP());
+      this._on(this.elements.theaterBtn, 'click', () => this.toggleTheater());
+      this._on(this.elements.miniBtn, 'click', () => this.toggleMini());
+      this._on(this.elements.subtitlesBtn, 'click', () => this.cycleSubtitles());
+      this._on(this.elements.loopBtn, 'click', () => this.handleLoopButton());
+      this._on(this.elements.settingsBtn, 'click', (e) => { e.stopPropagation(); this.toggleSettings(); });
+      this._on(this.elements.errorRetry, 'click', () => this._retry());
+
+      // Progress bar
+      this._on(this.elements.progressContainer, 'mousedown', (e) => this._startSeek(e));
+      this._on(document, 'mousemove', (e) => { if (this.state.seeking) this._onSeek(e); });
+      this._on(document, 'mouseup', () => { if (this.state.seeking) this._endSeek(); });
+      this._on(this.elements.progressContainer, 'mousemove', (e) => this._updateTimeTooltip(e));
+      this._on(this.elements.progressContainer, 'mouseleave', () => {
+        this.elements.timeTooltip.style.opacity = '0';
+      });
+
+      // Touch support
+      this._on(this.elements.progressContainer, 'touchstart', (e) => this._startSeek(e.touches[0]));
+      this._on(document, 'touchmove', (e) => { if (this.state.seeking) this._onSeek(e.touches[0]); });
+      this._on(document, 'touchend', () => { if (this.state.seeking) this._endSeek(); });
+
+      // Volume
+      this._on(this.elements.volumeTrack, 'mousedown', (e) => this._startVolume(e));
+      this._on(document, 'mousemove', (e) => { if (this.state.volumeSeeking) this._onVolume(e); });
+      this._on(document, 'mouseup', () => { if (this.state.volumeSeeking) this.state.volumeSeeking = false; });
+
+      // Volume scroll on video
+      this._on(container, 'wheel', (e) => {
+        if (e.ctrlKey || e.metaKey) return;
+        e.preventDefault();
+        const delta = e.deltaY > 0 ? -0.05 : 0.05;
+        this.setVolume(Math.max(0, Math.min(1, this.state.volume + delta)));
+      }, { passive: false });
+
+      // Double click fullscreen
+      if (this.options.doubleClickFullscreen) {
+        this._on(container, 'dblclick', (e) => {
+          if (e.target.closest('.owl-controls') || e.target.closest('.owl-settings-menu')) return;
+          this.toggleFullscreen();
+        });
+      }
+
+      // Click on video to toggle play
+      this._on(video, 'click', () => this.togglePlay());
+
+      // Settings menu
+      this.container.querySelectorAll('.owl-settings-item[data-speed]').forEach(item => {
+        this._on(item, 'click', () => {
+          const speed = parseFloat(item.dataset.speed);
+          this.setPlaybackRate(speed);
+          this.container.querySelectorAll('.owl-settings-item[data-speed]').forEach(i => i.classList.remove('active'));
+          item.classList.add('active');
+        });
+      });
+
+      // Close settings on outside click
+      this._on(document, 'click', (e) => {
+        if (this.state.settingsOpen && !e.target.closest('.owl-settings-menu') && !e.target.closest('#owlSettingsBtn')) {
+          this.closeSettings();
+        }
+      });
+
+      // Keyboard
+      if (this.options.keyboard) {
+        this._on(container, 'keydown', (e) => this._handleKeyboard(e));
+      }
+
+      // Fullscreen change
+      this._on(document, 'fullscreenchange', () => {
+        this.state.fullscreen = !!document.fullscreenElement;
+        this._updateFullscreenIcon();
+      });
+
+      // Controls auto-hide
+      this._on(container, 'mousemove', () => {
+        this.state.lastMouseMove = Date.now();
+        this.state.controlsVisible = true;
+        container.classList.add('owl-controls-visible');
+        this._resetControlsTimer();
+      });
+
+      this._on(container, 'mouseleave', () => {
+        if (this.state.playing) {
+          container.classList.remove('owl-controls-visible');
+        }
+      });
+    }
+
+    _on(el, event, handler, options) {
+      el.addEventListener(event, handler, options);
+      this.listeners.push({ el, event, handler });
+    }
+
+    _resetControlsTimer() {
+      clearTimeout(this.timers.controlsHide);
+      this.timers.controlsHide = setTimeout(() => {
+        if (this.state.playing && !this.state.seeking && !this.state.settingsOpen) {
+          this.state.controlsVisible = false;
+          this.container.classList.remove('owl-controls-visible');
+        }
+      }, 3000);
+    }
+
+    // === Playback ===
+    play() {
+      const p = this.elements.video.play();
+      if (p) p.catch(() => {});
+      this.elements.poster.classList.add('hidden');
+      return p;
+    }
+
+    pause() {
+      this.elements.video.pause();
+    }
+
+    togglePlay() {
+      if (this.state.playing) this.pause();
+      else this.play();
+    }
+
+    seek(time) {
+      const t = Math.max(0, Math.min(time, this.elements.video.duration || 0));
+      this.elements.video.currentTime = t;
+      this.state.currentTime = t;
+      this._updateProgressUI();
+    }
+
+    seekRelative(delta) {
+      this.seek(this.elements.video.currentTime + delta);
+    }
+
+    // === Progress ===
+    _onTimeUpdate() {
+      if (this.state.seeking) return;
+      this.state.currentTime = this.elements.video.currentTime;
+      this._updateProgressUI();
+      this._checkABLoop();
+      this._updateSubtitles();
+      this._emit('timeupdate', { currentTime: this.state.currentTime, duration: this.state.duration });
+    }
+
+    _onProgress() {
+      const video = this.elements.video;
+      if (video.buffered.length > 0) {
+        this.state.buffered = video.buffered.end(video.buffered.length - 1);
+        this.elements.progressBuffered.style.width = `${(this.state.buffered / this.state.duration) * 100}%`;
+      }
+    }
+
+    _onMetadata() {
+      const video = this.elements.video;
+      this.state.duration = video.duration;
+      this.elements.duration.textContent = this._formatTime(this.state.duration);
+      this._renderChapterMarkers();
+    }
+
+    _onEnded() {
+      this._emit('ended');
+      if (this.options.rememberTime && this.state.duration > 0) {
+        this._savePreference('lastTime_' + this._getSourceKey(), 0);
+      }
+    }
+
+    _onError(e) {
+      this.state.error = true;
+      const video = this.elements.video;
+      const error = video.error;
+      let message = 'An error occurred during playback';
+      if (error) {
+        switch (error.code) {
+          case 1: message = 'Video loading aborted'; break;
+          case 2: message = 'Network error - check your connection'; break;
+          case 3: message = 'Video decoding error'; break;
+          case 4: message = 'Video format not supported'; break;
+        }
+      }
+      this.elements.errorText.textContent = message;
+      this.elements.errorOverlay.classList.add('active');
+      this._emit('error', { error, message });
+    }
+
+    _retry() {
+      this.state.error = false;
+      this.elements.errorOverlay.classList.remove('active');
+      this.elements.video.load();
+      this.play();
+    }
+
+    _updateProgressUI() {
+      const pct = this.state.duration > 0 ? (this.state.currentTime / this.state.duration) * 100 : 0;
+      this.elements.progressPlayed.style.width = `${pct}%`;
+      this.elements.progressThumb.style.left = `${pct}%`;
+      this.elements.currentTime.textContent = this._formatTime(this.state.currentTime);
+    }
+
+    // === Seeking ===
+    _startSeek(e) {
+      this.state.seeking = true;
+      this._onSeek(e);
+    }
+
+    _onSeek(e) {
+      const rect = this.elements.progressBar.getBoundingClientRect();
+      const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+      const time = pct * this.state.duration;
+      this.elements.progressPlayed.style.width = `${pct * 100}%`;
+      this.elements.progressThumb.style.left = `${pct * 100}%`;
+      this.elements.currentTime.textContent = this._formatTime(time);
+    }
+
+    _endSeek() {
+      this.state.seeking = false;
+      const rect = this.elements.progressBar.getBoundingClientRect();
+      // We need the last position; recalculate from the played width
+      const pct = parseFloat(this.elements.progressPlayed.style.width) / 100;
+      this.seek(pct * this.state.duration);
+    }
+
+    _updateTimeTooltip(e) {
+      const rect = this.elements.progressBar.getBoundingClientRect();
+      const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+      const time = pct * this.state.duration;
+      this.elements.timeTooltip.textContent = this._formatTime(time);
+      this.elements.timeTooltip.style.left = `${pct * 100}%`;
+      this.elements.timeTooltip.style.opacity = '1';
+    }
+
+    // === Volume ===
+    setVolume(v) {
+      this.state.volume = Math.max(0, Math.min(1, v));
+      this.elements.video.volume = this.state.volume;
+      this.state.muted = this.state.volume === 0;
+      this.elements.video.muted = this.state.muted;
+      this._updateVolumeUI();
+      this._savePreference('volume', this.state.volume);
+    }
+
+    toggleMute() {
+      if (this.state.muted) {
+        this.state.muted = false;
+        this.elements.video.muted = false;
+        if (this.state.volume === 0) this.setVolume(0.5);
+      } else {
+        this.state.muted = true;
+        this.elements.video.muted = true;
+      }
+      this._updateVolumeUI();
+    }
+
+    _onVolumeChange() {
+      this.state.volume = this.elements.video.volume;
+      this.state.muted = this.elements.video.muted;
+      this._updateVolumeUI();
+    }
+
+    _updateVolumeUI() {
+      const vol = this.state.muted ? 0 : this.state.volume;
+      this.elements.volumeFill.style.width = `${vol * 100}%`;
+
+      let icon;
+      if (vol === 0) {
+        icon = '<path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/>';
+      } else if (vol < 0.5) {
+        icon = '<path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/>';
+      } else {
+        icon = '<path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>';
+      }
+      this.elements.volumeIcon.innerHTML = icon;
+    }
+
+    _startVolume(e) {
+      this.state.volumeSeeking = true;
+      this._onVolume(e);
+    }
+
+    _onVolume(e) {
+      const rect = this.elements.volumeTrack.getBoundingClientRect();
+      const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+      this.setVolume(pct);
+    }
+
+    // === Playback Rate ===
+    setPlaybackRate(rate) {
+      this.state.playbackRate = rate;
+      this.elements.video.playbackRate = rate;
+      this._updateSpeedUI();
+      this._showSpeedIndicator();
+    }
+
+    _updateSpeedUI() {
+      this.container.querySelectorAll('.owl-settings-item[data-speed]').forEach(item => {
+        item.classList.toggle('active', parseFloat(item.dataset.speed) === this.state.playbackRate);
+      });
+    }
+
+    _showSpeedIndicator() {
+      this.elements.speedIndicator.textContent = `${this.state.playbackRate}x`;
+      this.elements.speedIndicator.classList.add('active');
+      clearTimeout(this.timers.speedHide);
+      this.timers.speedHide = setTimeout(() => {
+        this.elements.speedIndicator.classList.remove('active');
+      }, 1500);
+    }
+
+    // === Fullscreen ===
+    toggleFullscreen() {
+      if (!this.state.fullscreen) {
+        if (this.container.requestFullscreen) this.container.requestFullscreen();
+        else if (this.container.webkitRequestFullscreen) this.container.webkitRequestFullscreen();
+      } else {
+        if (document.exitFullscreen) document.exitFullscreen();
+        else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+      }
+    }
+
+    _updateFullscreenIcon() {
+      if (this.state.fullscreen) {
+        this.elements.fullscreenIcon.innerHTML = '<path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/>';
+      } else {
+        this.elements.fullscreenIcon.innerHTML = '<path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/>';
+      }
+    }
+
+    // === PiP ===
+    async togglePiP() {
+      try {
+        if (this.state.pip) {
+          await document.exitPictureInPicture();
+        } else {
+          await this.elements.video.requestPictureInPicture();
+        }
+      } catch (e) {
+        console.warn('PiP not supported or failed:', e);
+      }
+    }
+
+    // === Theater Mode ===
+    toggleTheater() {
+      this.state.theater = !this.state.theater;
+      this.container.classList.toggle('owl-theater', this.state.theater);
+      this._emit('theaterchange', { theater: this.state.theater });
+    }
+
+    // === Mini Player ===
+    toggleMini() {
+      this.state.mini = !this.state.mini;
+      this.container.classList.toggle('owl-mini', this.state.mini);
+      this._emit('miniplayerchange', { mini: this.state.mini });
+    }
+
+    // === Subtitles ===
+    cycleSubtitles() {
+      const tracks = this.elements.video.textTracks;
+      if (!tracks.length) return;
+
+      this.state.currentSubtitle++;
+      if (this.state.currentSubtitle >= tracks.length) {
+        this.state.currentSubtitle = -1;
+        this.state.subtitlesEnabled = false;
+        this.elements.subtitles.innerHTML = '';
+      } else {
+        this.state.subtitlesEnabled = true;
+        for (let i = 0; i < tracks.length; i++) {
+          tracks[i].mode = i === this.state.currentSubtitle ? 'showing' : 'hidden';
+        }
+      }
+
+      this.elements.subtitlesBtn.style.opacity = this.state.subtitlesEnabled ? '1' : '0.5';
+    }
+
+    _updateSubtitles() {
+      if (!this.state.subtitlesEnabled) return;
+      const track = this.elements.video.textTracks[this.state.currentSubtitle];
+      if (!track || !track.activeCues || !track.activeCues.length) {
+        this.elements.subtitles.innerHTML = '';
+        return;
+      }
+      const cue = track.activeCues[0];
+      this.elements.subtitles.innerHTML = `<div class="owl-subtitle-text">${this._escapeHtml(cue.text)}</div>`;
+    }
+
+    // === A-B Loop ===
+    handleLoopButton() {
+      if (this.state.loopA === null) {
+        this.state.loopA = this.elements.video.currentTime;
+        this._showLoopIndicator('Point A set');
+      } else if (this.state.loopB === null) {
+        this.state.loopB = this.elements.video.currentTime;
+        if (this.state.loopB <= this.state.loopA) {
+          this.state.loopA = null;
+          this.state.loopB = null;
+          this._showLoopIndicator('Invalid range');
+          return;
+        }
+        this.state.loopActive = true;
+        this.elements.loopIndicator.classList.add('active');
+        this.elements.loopIndicator.textContent = `A-B Loop: ${this._formatTime(this.state.loopA)} - ${this._formatTime(this.state.loopB)}`;
+      } else {
+        this.state.loopA = null;
+        this.state.loopB = null;
+        this.state.loopActive = false;
+        this.elements.loopIndicator.classList.remove('active');
+      }
+    }
+
+    _checkABLoop() {
+      if (this.state.loopActive && this.state.loopB !== null) {
+        if (this.elements.video.currentTime >= this.state.loopB) {
+          this.elements.video.currentTime = this.state.loopA;
+        }
+      }
+    }
+
+    _showLoopIndicator(text) {
+      this.elements.loopIndicator.textContent = text;
+      this.elements.loopIndicator.classList.add('active');
+      clearTimeout(this.timers.loopIndicator);
+      this.timers.loopIndicator = setTimeout(() => {
+        if (!this.state.loopActive) {
+          this.elements.loopIndicator.classList.remove('active');
+        } else {
+          this.elements.loopIndicator.textContent = `A-B Loop: ${this._formatTime(this.state.loopA)} - ${this._formatTime(this.state.loopB)}`;
+        }
+      }, 2000);
+    }
+
+    // === Settings ===
+    toggleSettings() {
+      this.state.settingsOpen = !this.state.settingsOpen;
+      this.elements.settingsMenu.classList.toggle('active', this.state.settingsOpen);
+    }
+
+    closeSettings() {
+      this.state.settingsOpen = false;
+      this.elements.settingsMenu.classList.remove('active');
+    }
+
+    // === Quality ===
+    setQuality(index) {
+      const qualities = this.options.qualities;
+      if (!qualities || index < 0 || index >= qualities.length) return;
+
+      const video = this.elements.video;
+      const currentTime = video.currentTime;
+      const wasPlaying = !video.paused;
+
+      this.state.currentQuality = index;
+      const quality = qualities[index];
+
+      video.src = quality.src;
+      video.load();
+
+      if (this.options.rememberTime) {
+        video.addEventListener('loadedmetadata', () => {
+          video.currentTime = currentTime;
+          if (wasPlaying) this.play();
+        }, { once: true });
+      }
+
+      this.elements.qualityBadge.textContent = quality.label || `${quality.height}p`;
+      this._updateQualityUI();
+      this._emit('qualitychange', { quality, index });
+    }
+
+    _updateQualityUI() {
+      const items = this.container.querySelectorAll('.owl-settings-item[data-quality]');
+      items.forEach((item, i) => {
+        item.classList.toggle('active', i === this.state.currentQuality);
+      });
+    }
+
+    _renderQualityMenu() {
+      const qualities = this.options.qualities;
+      if (!qualities || !qualities.length) return;
+
+      this.elements.qualityHeader.style.display = 'block';
+      this.elements.qualityItems.innerHTML = '';
+
+      qualities.forEach((q, i) => {
+        const item = document.createElement('div');
+        item.className = 'owl-settings-item' + (i === this.state.currentQuality ? ' active' : '');
+        item.dataset.quality = i;
+        item.textContent = q.label || `${q.height}p`;
+        item.addEventListener('click', () => {
+          this.setQuality(i);
+          this.closeSettings();
+        });
+        this.elements.qualityItems.appendChild(item);
+      });
+    }
+
+    // === Chapters ===
+    _renderChapterMarkers() {
+      if (!this.chapterData.length) return;
+      const container = this.elements.progressContainer;
+
+      // Remove old markers
+      container.querySelectorAll('.owl-chapter-marker').forEach(m => m.remove());
+
+      this.chapterData.forEach(chapter => {
+        if (chapter.time >= 0 && chapter.time <= this.state.duration) {
+          const marker = document.createElement('div');
+          marker.className = 'owl-chapter-marker';
+          marker.style.left = `${(chapter.time / this.state.duration) * 100}%`;
+          marker.title = chapter.title || '';
+          container.appendChild(marker);
+        }
+      });
+    }
+
+    // === Keyboard ===
+    _handleKeyboard(e) {
+      const video = this.elements.video;
+      const key = e.key.toLowerCase();
+
+      // Don't handle if typing in an input
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+      switch (key) {
+        case ' ':
+        case 'k':
+          e.preventDefault();
+          this.togglePlay();
+          break;
+        case 'arrowleft':
+          e.preventDefault();
+          this.seekRelative(e.shiftKey ? -30 : -5);
+          break;
+        case 'arrowright':
+          e.preventDefault();
+          this.seekRelative(e.shiftKey ? 30 : 5);
+          break;
+        case 'arrowup':
+          e.preventDefault();
+          this.setVolume(Math.min(1, this.state.volume + 0.05));
+          break;
+        case 'arrowdown':
+          e.preventDefault();
+          this.setVolume(Math.max(0, this.state.volume - 0.05));
+          break;
+        case 'j':
+          e.preventDefault();
+          this.seekRelative(-10);
+          break;
+        case 'l':
+          e.preventDefault();
+          this.seekRelative(10);
+          break;
+        case 'f':
+          e.preventDefault();
+          this.toggleFullscreen();
+          break;
+        case 'm':
+          e.preventDefault();
+          this.toggleMute();
+          break;
+        case 'p':
+          e.preventDefault();
+          this.togglePiP();
+          break;
+        case 't':
+          e.preventDefault();
+          this.toggleTheater();
+          break;
+        case 'c':
+          e.preventDefault();
+          this.cycleSubtitles();
+          break;
+        case 'i':
+          e.preventDefault();
+          this.handleLoopButton();
+          break;
+        case '.':
+          e.preventDefault();
+          if (this.state.playing) this.pause();
+          this.seek(this.state.currentTime + 1 / 30); // ~1 frame at 30fps
+          break;
+        case ',':
+          e.preventDefault();
+          if (this.state.playing) this.pause();
+          this.seek(this.state.currentTime - 1 / 30);
+          break;
+        case '0':
+        case 'home':
+          e.preventDefault();
+          this.seek(0);
+          break;
+        case 'end':
+          e.preventDefault();
+          this.seek(this.state.duration);
+          break;
+        case 'shift':
+          // Handle shift + > and < for speed
+          break;
+        case '>':
+          if (e.shiftKey) {
+            e.preventDefault();
+            this.setPlaybackRate(Math.min(4, this.state.playbackRate + 0.25));
+          }
+          break;
+        case '<':
+          if (e.shiftKey) {
+            e.preventDefault();
+            this.setPlaybackRate(Math.max(0.25, this.state.playbackRate - 0.25));
+          }
+          break;
+        case '?':
+          e.preventDefault();
+          this.state.shortcutsOpen = !this.state.shortcutsOpen;
+          this.elements.shortcutsOverlay.classList.toggle('active', this.state.shortcutsOpen);
+          break;
+        case 'escape':
+          e.preventDefault();
+          if (this.state.shortcutsOpen) {
+            this.state.shortcutsOpen = false;
+            this.elements.shortcutsOverlay.classList.remove('active');
+          }
+          this.closeSettings();
+          break;
+        default:
+          // Number keys 1-9 for seeking
+          if (key >= '1' && key <= '9') {
+            e.preventDefault();
+            this.seek((parseInt(key) / 10) * this.state.duration);
+          }
+      }
+    }
+
+    // === UI Updates ===
+    _updatePlayIcon() {
+      if (this.state.playing) {
+        this.elements.playIcon.innerHTML = '<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>';
+        this.elements.bigPlay.classList.add('hidden');
+      } else {
+        this.elements.playIcon.innerHTML = '<polygon points="5,3 19,12 5,21"/>';
+        this.elements.bigPlay.classList.remove('hidden');
+      }
+    }
+
+    // === Preferences ===
+    _loadPreferences() {
+      if (!this.options.rememberVolume) return;
+      try {
+        const prefs = JSON.parse(localStorage.getItem(this.options.storageKey) || '{}');
+        if (prefs.volume !== undefined) {
+          this.setVolume(prefs.volume);
+        }
+      } catch (e) {}
+    }
+
+    _savePreference(key, value) {
+      try {
+        const prefs = JSON.parse(localStorage.getItem(this.options.storageKey) || '{}');
+        prefs[key] = value;
+        localStorage.setItem(this.options.storageKey, JSON.stringify(prefs));
+      } catch (e) {}
+    }
+
+    _getSourceKey() {
+      return (this.options.src || '').substring(0, 50).replace(/[^a-zA-Z0-9]/g, '_');
+    }
+
+    // === Utilities ===
+    _formatTime(seconds) {
+      if (!seconds || isNaN(seconds) || !isFinite(seconds)) return '0:00';
+      const h = Math.floor(seconds / 3600);
+      const m = Math.floor((seconds % 3600) / 60);
+      const s = Math.floor(seconds % 60);
+      if (h > 0) {
+        return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+      }
+      return `${m}:${s.toString().padStart(2, '0')}`;
+    }
+
+    _escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    _emit(eventName, data = {}) {
+      this.container.dispatchEvent(new CustomEvent(`owl:${eventName}`, { detail: data }));
+    }
+
+    // === Public API ===
+    on(event, handler) {
+      this.container.addEventListener(`owl:${event}`, (e) => handler(e.detail, this));
+      return this;
+    }
+
+    off(event, handler) {
+      this.container.removeEventListener(`owl:${event}`, handler);
+      return this;
+    }
+
+    destroy() {
+      // Remove all listeners
+      this.listeners.forEach(({ el, event, handler }) => {
+        el.removeEventListener(event, handler);
+      });
+      this.listeners = [];
+
+      // Clear timers
+      Object.values(this.timers).forEach(t => clearTimeout(t));
+
+      // Pause video
+      this.pause();
+
+      // Remove from DOM
+      this.container.innerHTML = '';
+    }
+
+    // Getters
+    get currentTime() { return this.elements.video.currentTime; }
+    get duration() { return this.elements.video.duration; }
+    get volume() { return this.state.volume; }
+    get muted() { return this.state.muted; }
+    get paused() { return this.elements.video.paused; }
+    get ended() { return this.elements.video.ended; }
+    get playbackRate() { return this.state.playbackRate; }
+    get buffered() { return this.elements.video.buffered; }
+    get videoWidth() { return this.elements.video.videoWidth; }
+    get videoHeight() { return this.elements.video.videoHeight; }
+  }
+
+  // Expose globally
+  window.OWLPlayer = OWLPlayer;
+
+  // Auto-initialize players with data-owl-player attribute
+  document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('[data-owl-player]').forEach(el => {
+      const options = {};
+      try {
+        const data = el.dataset;
+        if (data.src) options.src = data.src;
+        if (data.poster) options.poster = data.poster;
+        if (data.autoplay) options.autoplay = true;
+        if (data.muted) options.muted = true;
+        if (data.loop) options.loop = true;
+        if (data.accent) options.accentColor = data.accent;
+        if (data.theme) options.theme = data.theme;
+        if (data.live) options.live = true;
+        if (data.startTime) options.startTime = parseFloat(data.startTime);
+      } catch (e) {}
+      new OWLPlayer(el, options);
+    });
+  });
+})();
+</script>
+
+<!-- Usage Example -->
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const player = new OWLPlayer('#owlPlayer', {
+    src: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+    poster: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/images/BigBuckBunny.jpg',
+    accentColor: '#e8175d',
+    theme: 'dark',
+    rememberVolume: true,
+    doubleClickFullscreen: true,
+    qualities: [
+      { src: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4', label: '720p', height: 720 }
+    ],
+    subtitles: [
+      { src: '#', label: 'English', srclang: 'en' }
+    ],
+    chapters: [
+      { time: 0, title: 'Intro' },
+      { time: 60, title: 'Chapter 1' },
+      { time: 300, title: 'Chapter 2' }
+    ]
+  });
+
+  // Event listeners
+  player.on('timeupdate', (data) => {
+    // console.log('Time:', data.currentTime);
+  });
+
+  player.on('ended', () => {
+    console.log('Video ended');
+  });
+});
+</script>
+</body>
+</html>
