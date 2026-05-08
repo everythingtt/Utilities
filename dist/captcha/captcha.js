@@ -157,55 +157,120 @@
   // ═══════════════════════════════════════════════════════════════════════════════
 
   const ImagePuzzles = {
-    baseUrl: 'https://picsum.photos/seed',
     puzzles: [
       {
         id: 'select-all-cars',
         name: 'Select all cars',
         question: 'Select all images with cars',
         folder: 'select-all-cars',
-        correctImages: ['vg-car-1', 'vg-car-2', 'vg-car-3', 'vg-car-4'],
-        incorrectImages: ['vg-tree-1', 'vg-house-1', 'vg-bicycle-1', 'vg-cloud-1', 'vg-sun-1']
+        correctImages: [
+          'https://upload.wikimedia.org/wikipedia/commons/thumb/6/63/Ioniq-3.jpg/200px-Ioniq-3.jpg',
+          'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b0/Silver_Honda_CR-V.jpg/200px-Silver_Honda_CR-V.jpg',
+          'https://upload.wikimedia.org/wikipedia/commons/thumb/7/77/%2215_-_ITALY_-_Parked_automobiles_out_of_Museo_Storico_Alfa_Romeo_Milan_-_in_this_pics_four_Alfa_and_pedestrian_crossings.JPG/200px-%2215_-_ITALY_-_Parked_automobiles_out_of_Museo_Storico_Alfa_Romeo_Milan_-_in_this_pics_four_Alfa_and_pedestrian_crossings.JPG',
+          'https://upload.wikimedia.org/wikipedia/commons/thumb/f/f3/137C_Calea_Plevnei%2C_Bucharest_%2855%29.jpg/200px-137C_Calea_Plevnei%2C_Bucharest_%2855%29.jpg'
+        ],
+        incorrectImages: [
+          'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a3/20220802_Welsh_Countryside.jpg/200px-20220802_Welsh_Countryside.jpg',
+          'https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/03_Reflet_-_Reflection_02.jpg/200px-03_Reflet_-_Reflection_02.jpg',
+          'https://upload.wikimedia.org/wikipedia/commons/thumb/0/0f/Fallstreak_Hole.png/200px-Fallstreak_Hole.png',
+          'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a8/Agate_Bay_Sun_Club_dock_circa_1970%2C_North_Lake_Tahoe.jpg/200px-Agate_Bay_Sun_Club_dock_circa_1970%2C_North_Lake_Tahoe.jpg',
+          'https://upload.wikimedia.org/wikipedia/commons/thumb/3/37/Analemma_Earth_it.png/200px-Analemma_Earth_it.png'
+        ]
       },
       {
         id: 'select-all-traffic-lights',
         name: 'Select all traffic lights',
         question: 'Select all images with traffic lights',
         folder: 'select-all-traffic-lights',
-        correctImages: ['vg-light-1', 'vg-light-2', 'vg-light-3', 'vg-stoplight-1'],
-        incorrectImages: ['vg-streetlamp-1', 'vg-lantern-1', 'vg-headlight-1', 'vg-candle-1', 'vg-flashlight-1']
+        correctImages: [
+          'https://upload.wikimedia.org/wikipedia/commons/thumb/e/ed/A_standard_traffic_signal_arrangement_-_red_on_top%2C_yellow_below%2C_and_green_below_that.png/200px-A_standard_traffic_signal_arrangement_-_red_on_top%2C_yellow_below%2C_and_green_below_that.png',
+          'https://upload.wikimedia.org/wikipedia/commons/thumb/5/5a/All_Stop_%28219936839%29.jpeg/200px-All_Stop_%28219936839%29.jpeg',
+          'https://upload.wikimedia.org/wikipedia/commons/thumb/0/00/Ashton_Willenberg_opens_up_the_traffic_signal_%2850063087026%29.jpg/200px-Ashton_Willenberg_opens_up_the_traffic_signal_%2850063087026%29.jpg',
+          'https://upload.wikimedia.org/wikipedia/commons/thumb/4/48/Ampel_Engelbosteler_Damm_Pfand_gehoert_daneben.jpg/200px-Ampel_Engelbosteler_Damm_Pfand_gehoert_daneben.jpg'
+        ],
+        incorrectImages: [
+          'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d0/Old_abandoned_street_lamp.jpg/200px-Old_abandoned_street_lamp.jpg',
+          'https://upload.wikimedia.org/wikipedia/commons/thumb/f/f9/Yield_sign_in_Monaco.jpg/200px-Yield_sign_in_Monaco.jpg',
+          'https://upload.wikimedia.org/wikipedia/commons/thumb/0/04/Give_way_%28Pakistan_road_sign%29.jpg/200px-Give_way_%28Pakistan_road_sign%29.jpg',
+          'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b5/%22A_warning_in_30_Languages%22_%2814197972167%29.jpg/200px-%22A_warning_in_30_Languages%22_%2814197972167%29.jpg',
+          'https://upload.wikimedia.org/wikipedia/commons/thumb/3/3f/2016_366_238_Proceed_with_Caution_%2829158196811%29.jpg/200px-2016_366_238_Proceed_with_Caution_%2829158196811%29.jpg'
+        ]
       },
       {
         id: 'select-all-crosswalks',
         name: 'Select all crosswalks',
         question: 'Select all images with crosswalks',
         folder: 'select-all-crosswalks',
-        correctImages: ['vg-crosswalk-1', 'vg-crosswalk-2', 'vg-zebra-1', 'vg-sidewalk-1'],
-        incorrectImages: ['vg-ladder-1', 'vg-bridge-1', 'vg-stairs-1', 'vg-railroad-1', 'vg-lines-1']
+        correctImages: [
+          'https://upload.wikimedia.org/wikipedia/commons/thumb/1/16/%22Respect_the_Crosswalk%22_-_Flickr_-_Diego3336.jpg/200px-%22Respect_the_Crosswalk%22_-_Flickr_-_Diego3336.jpg',
+          'https://upload.wikimedia.org/wikipedia/commons/thumb/a/aa/0078_klzwick_DSCN0768.JPG/200px-0078_klzwick_DSCN0768.JPG',
+          'https://upload.wikimedia.org/wikipedia/commons/thumb/9/9d/2009_06_09_-_6775_-_Hanover_-_OoTS_Ped_Amenity_Testing_%283615255416%29.jpg/200px-2009_06_09_-_6775_-_Hanover_-_OoTS_Ped_Amenity_Testing_%283615255416%29.jpg',
+          'https://upload.wikimedia.org/wikipedia/commons/thumb/5/50/BEG_BUTTON_to_cross_street_push_button_wait_for_walk_signal.jpg/200px-BEG_BUTTON_to_cross_street_push_button_wait_for_walk_signal.jpg'
+        ],
+        incorrectImages: [
+          'https://upload.wikimedia.org/wikipedia/commons/thumb/2/27/14-02-21-mainz-RalfR-61.jpg/200px-14-02-21-mainz-RalfR-61.jpg',
+          'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d7/Am_DIN-Platz%2C_Berlin_%28P1031500%29.jpg/200px-Am_DIN-Platz%2C_Berlin_%28P1031500%29.jpg',
+          'https://upload.wikimedia.org/wikipedia/commons/thumb/1/1e/2016_366_350_Sweet_Ride_%2830826669384%29.jpg/200px-2016_366_350_Sweet_Ride_%2830826669384%29.jpg',
+          'https://upload.wikimedia.org/wikipedia/commons/thumb/5/5d/Indian_v-twin_%2832710302020%29.jpg/200px-Indian_v-twin_%2832710302020%29.jpg',
+          'https://upload.wikimedia.org/wikipedia/commons/thumb/f/f7/20251012_xl_0936-Magdeburger_Ampel%2C_%22Magdeburger_Jungfrau%22_%28rot%29%2C_%22Magdeburger_Reiter%22_%28rot%29.jpg/200px-20251012_xl_0936-Magdeburger_Ampel%2C_%22Magdeburger_Jungfrau%22_%28rot%29%2C_%22Magdeburger_Reiter%22_%28rot%29.jpg'
+        ]
       },
       {
         id: 'select-all-fire-hydrants',
         name: 'Select all fire hydrants',
         question: 'Select all images with fire hydrants',
         folder: 'select-all-fire-hydrants',
-        correctImages: ['vg-hydrant-1', 'vg-hydrant-2', 'vg-hydrant-3'],
-        incorrectImages: ['vg-mailbox-1', 'vg-postbox-1', 'vg-bench-1', 'vg-drain-1', 'vg-manhole-1', 'vg-valve-1']
+        correctImages: [
+          'https://upload.wikimedia.org/wikipedia/commons/thumb/6/6b/2022-10-30_DIN-Hydrant_der_Firma_Mittelmann_in_Wolfratshausen%2C_hier_gesehen_in_Steinhude.jpg/200px-2022-10-30_DIN-Hydrant_der_Firma_Mittelmann_in_Wolfratshausen%2C_hier_gesehen_in_Steinhude.jpg',
+          'https://upload.wikimedia.org/wikipedia/commons/thumb/5/51/A_Hydrant_With_A_Cap_%28258752069%29.jpeg/200px-A_Hydrant_With_A_Cap_%28258752069%29.jpeg',
+          'https://upload.wikimedia.org/wikipedia/commons/thumb/5/53/500px_photo_%2847990116%29.jpeg/200px-500px_photo_%2847990116%29.jpeg'
+        ],
+        incorrectImages: [
+          'https://upload.wikimedia.org/wikipedia/commons/thumb/c/ce/Blackfoot_Language_Stop_Sign.jpg/200px-Blackfoot_Language_Stop_Sign.jpg',
+          'https://upload.wikimedia.org/wikipedia/commons/thumb/0/09/Brazzaville_Congo_panneau_de_signalisation_routi%C3%A8re.jpg/200px-Brazzaville_Congo_panneau_de_signalisation_routi%C3%A8re.jpg',
+          'https://upload.wikimedia.org/wikipedia/commons/thumb/8/82/2022_IDEAL_Mini_school_protests_stop_sign.jpg/200px-2022_IDEAL_Mini_school_protests_stop_sign.jpg',
+          'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c9/2008-07-18_Bird_on_a_yield_sign_1.jpg/200px-2008-07-18_Bird_on_a_yield_sign_1.jpg',
+          'https://upload.wikimedia.org/wikipedia/commons/thumb/f/f9/Yield_sign_in_Monaco.jpg/200px-Yield_sign_in_Monaco.jpg',
+          'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b5/%22A_warning_in_30_Languages%22_%2814197972167%29.jpg/200px-%22A_warning_in_30_Languages%22_%2814197972167%29.jpg'
+        ]
       },
       {
         id: 'select-all-bicycles',
         name: 'Select all bicycles',
         question: 'Select all images with bicycles',
         folder: 'select-all-bicycles',
-        correctImages: ['vg-bike-1', 'vg-bike-2', 'vg-bike-3'],
-        incorrectImages: ['vg-wheel-1', 'vg-scooter-1', 'vg-unicycle-1', 'vg-tricycle-1', 'vg-motorcycle-1', 'vg-skateboard-1']
+        correctImages: [
+          'https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/%284%29_bicicleta_-_Edited.jpg/200px-%284%29_bicicleta_-_Edited.jpg',
+          'https://upload.wikimedia.org/wikipedia/commons/thumb/1/1e/2016_366_350_Sweet_Ride_%2830826669384%29.jpg/200px-2016_366_350_Sweet_Ride_%2830826669384%29.jpg',
+          'https://upload.wikimedia.org/wikipedia/commons/thumb/2/27/14-02-21-mainz-RalfR-61.jpg/200px-14-02-21-mainz-RalfR-61.jpg'
+        ],
+        incorrectImages: [
+          'https://upload.wikimedia.org/wikipedia/commons/thumb/5/5d/Indian_v-twin_%2832710302020%29.jpg/200px-Indian_v-twin_%2832710302020%29.jpg',
+          'https://upload.wikimedia.org/wikipedia/commons/thumb/6/63/Ioniq-3.jpg/200px-Ioniq-3.jpg',
+          'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b0/Silver_Honda_CR-V.jpg/200px-Silver_Honda_CR-V.jpg',
+          'https://upload.wikimedia.org/wikipedia/commons/thumb/e/ed/A_standard_traffic_signal_arrangement_-_red_on_top%2C_yellow_below%2C_and_green_below_that.png/200px-A_standard_traffic_signal_arrangement_-_red_on_top%2C_yellow_below%2C_and_green_below_that.png',
+          'https://upload.wikimedia.org/wikipedia/commons/thumb/6/6b/2022-10-30_DIN-Hydrant_der_Firma_Mittelmann_in_Wolfratshausen%2C_hier_gesehen_in_Steinhude.jpg/200px-2022-10-30_DIN-Hydrant_der_Firma_Mittelmann_in_Wolfratshausen%2C_hier_gesehen_in_Steinhude.jpg',
+          'https://upload.wikimedia.org/wikipedia/commons/thumb/8/82/2022_IDEAL_Mini_school_protests_stop_sign.jpg/200px-2022_IDEAL_Mini_school_protests_stop_sign.jpg'
+        ]
       },
       {
         id: 'select-all-stop-signs',
         name: 'Select all stop signs',
         question: 'Select all images with stop signs',
         folder: 'select-all-stop-signs',
-        correctImages: ['vg-stop-1', 'vg-stop-2', 'vg-stop-3'],
-        incorrectImages: ['vg-yield-1', 'vg-warning-1', 'vg-noentry-1', 'vg-caution-1', 'vg-railroad-1', 'vg-speedlimit-1']
+        correctImages: [
+          'https://upload.wikimedia.org/wikipedia/commons/thumb/8/82/2022_IDEAL_Mini_school_protests_stop_sign.jpg/200px-2022_IDEAL_Mini_school_protests_stop_sign.jpg',
+          'https://upload.wikimedia.org/wikipedia/commons/thumb/c/ce/Blackfoot_Language_Stop_Sign.jpg/200px-Blackfoot_Language_Stop_Sign.jpg',
+          'https://upload.wikimedia.org/wikipedia/commons/thumb/0/09/Brazzaville_Congo_panneau_de_signalisation_routi%C3%A8re.jpg/200px-Brazzaville_Congo_panneau_de_signalisation_routi%C3%A8re.jpg'
+        ],
+        incorrectImages: [
+          'https://upload.wikimedia.org/wikipedia/commons/thumb/f/f9/Yield_sign_in_Monaco.jpg/200px-Yield_sign_in_Monaco.jpg',
+          'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b5/%22A_warning_in_30_Languages%22_%2814197972167%29.jpg/200px-%22A_warning_in_30_Languages%22_%2814197972167%29.jpg',
+          'https://upload.wikimedia.org/wikipedia/commons/thumb/0/04/Give_way_%28Pakistan_road_sign%29.jpg/200px-Give_way_%28Pakistan_road_sign%29.jpg',
+          'https://upload.wikimedia.org/wikipedia/commons/thumb/3/3f/2016_366_238_Proceed_with_Caution_%2829158196811%29.jpg/200px-2016_366_238_Proceed_with_Caution_%2829158196811%29.jpg',
+          'https://upload.wikimedia.org/wikipedia/commons/thumb/5/5d/Indian_v-twin_%2832710302020%29.jpg/200px-Indian_v-twin_%2832710302020%29.jpg',
+          'https://upload.wikimedia.org/wikipedia/commons/thumb/1/1e/2016_366_350_Sweet_Ride_%2830826669384%29.jpg/200px-2016_366_350_Sweet_Ride_%2830826669384%29.jpg'
+        ]
       }
     ],
 
@@ -317,8 +382,8 @@
       const puzzle = puzzleId ? ImagePuzzles.getPuzzle(puzzleId) : ImagePuzzles.getRandomPuzzle();
       
       const allImages = [
-        ...puzzle.correctImages.map(img => ({ file: img, correct: true })),
-        ...puzzle.incorrectImages.map(img => ({ file: img, correct: false }))
+        ...puzzle.correctImages.map(url => ({ url, correct: true })),
+        ...puzzle.incorrectImages.map(url => ({ url, correct: false }))
       ];
       
       const shuffledImages = ImagePuzzles.shuffleArray(allImages);
@@ -326,11 +391,9 @@
         .map((img, index) => img.correct ? index : -1)
         .filter(index => index !== -1);
       
-      const imageUrls = shuffledImages.map(img => `${ImagePuzzles.baseUrl}/${img.file}/200/200`);
-      
       return {
         question: puzzle.question,
-        images: imageUrls,
+        images: shuffledImages.map(img => img.url),
         correctIndices: correctIndices,
         puzzleId: puzzle.id
       };
@@ -1080,11 +1143,26 @@
           cell.className = 'vg-image-cell';
           cell.dataset.index = index;
           
+          const placeholder = document.createElement('div');
+          placeholder.className = 'vg-image-placeholder';
+          placeholder.textContent = `Image ${index + 1}`;
+          cell.appendChild(placeholder);
+          
           const img = document.createElement('img');
           img.src = imgSrc;
           img.alt = `Image ${index + 1}`;
+          img.style.position = 'absolute';
+          img.style.top = '0';
+          img.style.left = '0';
+          img.style.width = '100%';
+          img.style.height = '100%';
+          img.style.objectFit = 'cover';
+          img.style.borderRadius = '7px';
+          img.onload = () => {
+            placeholder.style.display = 'none';
+          };
           img.onerror = () => {
-            cell.innerHTML = `<div class="vg-image-placeholder">Image ${index + 1}</div>`;
+            placeholder.textContent = 'Image ' + (index + 1);
           };
           
           cell.appendChild(img);
