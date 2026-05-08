@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="VaultGuard CAPTCHA Privacy Policy - Learn about our zero-tracking, privacy-first approach to CAPTCHA verification.">
+  <title>Privacy Policy - VaultGuard™ CAPTCHA</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      line-height: 1.7;
+      color: #1e293b;
+      background: #f8fafc;
+    }
+    
+    /* Header */
+    .header {
+      background: linear-gradient(135deg, #1e3a5f 0%, #0f172a 100%);
+      padding: 24px 0;
+      box-shadow: 0 4px 20px rgba(30, 58, 95, 0.2);
+    }
+    
+    .header-content {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 0 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      color: white;
+      text-decoration: none;
+    }
+    
+    .logo-icon {
+      width: 48px;
+      height: 48px;
+    }
+    
+    .logo-text h1 {
+      font-size: 24px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+    
+    .logo-text span {
+      font-size: 12px;
+      opacity: 0.8;
+      font-weight: 400;
+    }
+    
+    .nav-links {
+      display: flex;
+      gap: 24px;
+    }
+    
+    .nav-links a {
+      color: rgba(255, 255, 255, 0.9);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+    
+    .nav-links a:hover {
+      color: #00d4aa;
+    }
+    
+    /* Main Content */
+    .main {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 48px 24px;
+    }
+    
+    .page-title {
+      font-size: 36px;
+      font-weight: 700;
+      color: #1e3a5f;
+      margin-bottom: 8px;
+      letter-spacing: -1px;
+    }
+    
+    .last-updated {
+      color: #64748b;
+      font-size: 14px;
+      margin-bottom: 40px;
+    }
+    
+    /* Sections */
+    .section {
+      background: white;
+      border-radius: 12px;
+      padding: 32px;
+      margin-bottom: 24px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+      border: 1px solid #e2e8f0;
+    }
+    
+    .section h2 {
+      font-size: 20px;
+      font-weight: 600;
+      color: #1e3a5f;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    
+    .section h2 .icon {
+      width: 28px;
+      height: 28px;
+      color: #00d4aa;
+    }
+    
+    .section p {
+      color: #475569;
+      margin-bottom: 16px;
+    }
+    
+    .section p:last-child {
+      margin-bottom: 0;
+    }
+    
+    .section ul {
+      margin: 16px 0;
+      padding-left: 24px;
+    }
+    
+    .section li {
+      color: #475569;
+      margin-bottom: 8px;
+    }
+    
+    /* Highlight Box */
+    .highlight-box {
+      background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
+      border: 1px solid #bbf7d0;
+      border-radius: 10px;
+      padding: 20px;
+      margin: 20px 0;
+    }
+    
+    .highlight-box h3 {
+      color: #166534;
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .highlight-box p {
+      color: #166534;
+      font-size: 14px;
+      margin: 0;
+    }
+    
+    /* Data Table */
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+    }
+    
+    .data-table th,
+    .data-table td {
+      padding: 14px 16px;
+      text-align: left;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    
+    .data-table th {
+      background: #f8fafc;
+      font-weight: 600;
+      color: #1e3a5f;
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .data-table td {
+      color: #475569;
+      font-size: 14px;
+    }
+    
+    .data-table tr:last-child td {
+      border-bottom: none;
+    }
+    
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    
+    .badge-success {
+      background: #dcfce7;
+      color: #166534;
+    }
+    
+    .badge-error {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+    
+    /* Contact Box */
+    .contact-box {
+      background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+      border: 1px solid #bfdbfe;
+      border-radius: 10px;
+      padding: 24px;
+      text-align: center;
+    }
+    
+    .contact-box h3 {
+      color: #1e40af;
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+    
+    .contact-box p {
+      color: #1e40af;
+      font-size: 14px;
+      margin-bottom: 16px;
+    }
+    
+    .contact-email {
+      display: inline-block;
+      background: #1e40af;
+      color: white;
+      padding: 12px 24px;
+      border-radius: 8px;
+      text-decoration: none;
+      font-weight: 500;
+      transition: background 0.2s;
+    }
+    
+    .contact-email:hover {
+      background: #1e3a8a;
+    }
+    
+    /* Footer */
+    .footer {
+      background: #1e3a5f;
+      color: white;
+      padding: 32px 0;
+      margin-top: 64px;
+    }
+    
+    .footer-content {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 0 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    
+    .footer-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    
+    .footer-logo {
+      width: 32px;
+      height: 32px;
+    }
+    
+    .footer-text {
+      font-size: 14px;
+      opacity: 0.9;
+    }
+    
+    .footer-links {
+      display: flex;
+      gap: 24px;
+    }
+    
+    .footer-links a {
+      color: rgba(255, 255, 255, 0.8);
+      text-decoration: none;
+      font-size: 14px;
+      transition: color 0.2s;
+    }
+    
+    .footer-links a:hover {
+      color: #00d4aa;
+    }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+      .header-content {
+        flex-direction: column;
+        gap: 16px;
+      }
+      
+      .nav-links {
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+      
+      .page-title {
+        font-size: 28px;
+      }
+      
+      .section {
+        padding: 24px;
+      }
+      
+      .footer-content {
+        flex-direction: column;
+        gap: 16px;
+        text-align: center;
+      }
+      
+      .data-table {
+        font-size: 13px;
+      }
+      
+      .data-table th,
+      .data-table td {
+        padding: 10px 8px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header class="header">
+    <div class="header-content">
+      <a href="index.html" class="logo">
+        <svg class="logo-icon" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="shieldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" style="stop-color:#1e3a5f"/>
+              <stop offset="100%" style="stop-color:#0f172a"/>
+            </linearGradient>
+            <linearGradient id="checkGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" style="stop-color:#00d4aa"/>
+              <stop offset="100%" style="stop-color:#10b981"/>
+            </linearGradient>
+          </defs>
+          <path d="M50 5 L90 20 V45 C90 70 70 90 50 95 C30 90 10 70 10 45 V20 Z" 
+                fill="url(#shieldGrad)" stroke="#0f172a" stroke-width="3"/>
+          <path d="M30 50 L45 65 L70 35" 
+                fill="none" stroke="url(#checkGrad)" stroke-width="8" 
+                stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <div class="logo-text">
+          <h1>VaultGuard™</h1>
+          <span>Privacy-First CAPTCHA</span>
+        </div>
+      </a>
+      <nav class="nav-links">
+        <a href="index.html">Home</a>
+        <a href="privacy.html">Privacy</a>
+        <a href="terms.html">Terms</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="main">
+    <h1 class="page-title">Privacy Policy</h1>
+    <p class="last-updated">Last updated: January 1, 2024</p>
+
+    <!-- Commitment Section -->
+    <section class="section">
+      <h2>
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 2L3 7V12C3 17.5 6.8 22.9 12 24C17.2 22.9 21 17.5 21 12V7L12 2Z"/>
+          <path d="M8.5 12L11 14.5L15.5 9.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Our Privacy Commitment
+      </h2>
+      <p>
+        At VaultGuard™, privacy is not just a feature—it's our foundation. We believe that 
+        security verification should never come at the cost of user privacy. Our CAPTCHA 
+        solution is designed from the ground up to protect both your website and your users' 
+        personal information.
+      </p>
+      
+      <div class="highlight-box">
+        <h3>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 12L11 14L15 10"/>
+            <circle cx="12" cy="12" r="10"/>
+          </svg>
+          Zero Tracking Guarantee
+        </h3>
+        <p>
+          VaultGuard™ CAPTCHA does not track, fingerprint, or profile users in any way. 
+          We collect zero personal data. Period.
+        </p>
+      </div>
+    </section>
+
+    <!-- Data Collection Section -->
+    <section class="section">
+      <h2>
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+          <line x1="3" y1="9" x2="21" y2="9"/>
+          <line x1="9" y1="21" x2="9" y2="9"/>
+        </svg>
+        Data We Collect
+      </h2>
+      <p>
+        Transparency is core to our mission. Here's exactly what data VaultGuard™ CAPTCHA 
+        handles during the verification process:
+      </p>
+      
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Data Type</th>
+            <th>Collected</th>
+            <th>Purpose</th>
+            <th>Retention</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Challenge Answers</td>
+            <td><span class="badge badge-error">Never</span></td>
+            <td>N/A</td>
+            <td>N/A</td>
+          </tr>
+          <tr>
+            <td>IP Addresses</td>
+            <td><span class="badge badge-error">Never</span></td>
+            <td>N/A</td>
+            <td>N/A</td>
+          </tr>
+          <tr>
+            <td>Browser Fingerprint</td>
+            <td><span class="badge badge-error">Never</span></td>
+            <td>N/A</td>
+            <td>N/A</td>
+          </tr>
+          <tr>
+            <td>Cookies</td>
+            <td><span class="badge badge-error">Never</span></td>
+            <td>N/A</td>
+            <td>N/A</td>
+          </tr>
+          <tr>
+            <td>Temporary Challenge Data</td>
+            <td><span class="badge badge-success">Yes</span></td>
+            <td>Verification only</td>
+            <td>Expires in 5 min</td>
+          </tr>
+        </tbody>
+      </table>
+      
+      <p>
+        <strong>Note:</strong> The temporary challenge data (question and hashed answer) exists 
+        only in your browser's memory and is automatically deleted after the challenge expires 
+        or is completed. This data is never transmitted to our servers.
+      </p>
+    </section>
+
+    <!-- How It Works Section -->
+    <section class="section">
+      <h2>
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <path d="M12 16V12M12 8H12.01"/>
+        </svg>
+        How VaultGuard™ Protects Your Privacy
+      </h2>
+      
+      <ul>
+        <li>
+          <strong>Client-Side Processing:</strong> All CAPTCHA generation and verification 
+          happens in the user's browser. No data is sent to external servers.
+        </li>
+        <li>
+          <strong>No Cookies:</strong> We don't set, read, or use cookies of any kind. 
+          No tracking cookies, no session cookies, no analytics cookies.
+        </li>
+        <li>
+          <strong>No Fingerprinting:</strong> We don't collect browser fingerprints, 
+          canvas fingerprints, or any other identifying information.
+        </li>
+        <li>
+          <strong>No Third-Party Requests:</strong> Our library makes zero external 
+          network requests. Everything is self-contained.
+        </li>
+        <li>
+          <strong>Ephemeral Data:</strong> Challenge data exists only temporarily in 
+          memory and is automatically cleaned up.
+        </li>
+        <li>
+          <strong>Open Source:</strong> Our code is fully auditable. You can verify 
+          our privacy claims by reviewing the source code.
+        </li>
+      </ul>
+    </section>
+
+    <!-- Comparison Section -->
+    <section class="section">
+      <h2>
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M16 3H1V16H16V3Z"/>
+          <path d="M16 8H21V21H6V16"/>
+          <path d="M9 12L11 14L15 10"/>
+        </svg>
+        VaultGuard™ vs. Traditional CAPTCHAs
+      </h2>
+      
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Feature</th>
+            <th>VaultGuard™</th>
+            <th>Traditional CAPTCHAs</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>User Tracking</td>
+            <td><span class="badge badge-success">None</span></td>
+            <td><span class="badge badge-error">Extensive</span></td>
+          </tr>
+          <tr>
+            <td>Cookies</td>
+            <td><span class="badge badge-success">None</span></td>
+            <td><span class="badge badge-error">Required</span></td>
+          </tr>
+          <tr>
+            <td>External Servers</td>
+            <td><span class="badge badge-success">None</span></td>
+            <td><span class="badge badge-error">Required</span></td>
+          </tr>
+          <tr>
+            <td>Data Collection</td>
+            <td><span class="badge badge-success">Zero</span></td>
+            <td><span class="badge badge-error">Extensive</span></td>
+          </tr>
+          <tr>
+            <td>GDPR Compliance</td>
+            <td><span class="badge badge-success">Inherent</span></td>
+            <td><span class="badge badge-error">Complex</span></td>
+          </tr>
+          <tr>
+            <td>Accessibility</td>
+            <td><span class="badge badge-success">High</span></td>
+            <td><span class="badge badge-success">Varies</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- GDPR Section -->
+    <section class="section">
+      <h2>
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 22S8 18 8 13V7L12 5L16 7V13C16 18 12 22 12 22Z"/>
+          <path d="M9 12L11 14L15 10"/>
+        </svg>
+        GDPR & Privacy Law Compliance
+      </h2>
+      <p>
+        Because VaultGuard™ collects zero personal data, compliance with privacy regulations 
+        like GDPR, CCPA, and others is significantly simplified:
+      </p>
+      
+      <ul>
+        <li><strong>No consent required:</strong> We don't process personal data, so cookie consent banners are not needed for our CAPTCHA.</li>
+        <li><strong>No data processing agreements:</strong> Since no data leaves the user's browser, there's no data processing to regulate.</li>
+        <li><strong>No data breach risk:</strong> With zero data collection, there's nothing to breach.</li>
+        <li><strong>No user rights requests:</strong> No data means no data to access, delete, or port.</li>
+      </ul>
+    </section>
+
+    <!-- Contact Section -->
+    <section class="section">
+      <h2>
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M4 4H20C21.1 4 22 4.9 22 6V18C22 19.1 21.1 20 20 20H4C2.9 20 2 19.1 2 18V6C2 4.9 2.9 4 4 4Z"/>
+          <polyline points="22,6 12,13 2,6"/>
+        </svg>
+        Contact Us
+      </h2>
+      
+      <div class="contact-box">
+        <h3>Have Privacy Questions?</h3>
+        <p>
+          We're committed to transparency. If you have any questions about our privacy 
+          practices or how VaultGuard™ protects user data, please reach out.
+        </p>
+        <a href="mailto:privacy@vaultguard-captcha.dev" class="contact-email">
+          privacy@vaultguard-captcha.dev
+        </a>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="footer-content">
+      <div class="footer-brand">
+        <svg class="footer-logo" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2L3 7V12C3 17.5 6.8 22.9 12 24C17.2 22.9 21 17.5 21 12V7L12 2Z" 
+                fill="#1e3a5f" stroke="#0f172a" stroke-width="1.5"/>
+          <path d="M8.5 12L11 14.5L15.5 9.5" 
+                stroke="#00d4aa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span class="footer-text">Protected by VaultGuard™ CAPTCHA</span>
+      </div>
+      <nav class="footer-links">
+        <a href="index.html">Home</a>
+        <a href="privacy.html">Privacy</a>
+        <a href="terms.html">Terms</a>
+      </nav>
+    </div>
+  </footer>
+</body>
+</html>

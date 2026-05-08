@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="VaultGuard CAPTCHA Terms of Service - Learn about the terms and conditions for using our privacy-first CAPTCHA solution.">
+  <title>Terms of Service - VaultGuard™ CAPTCHA</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      line-height: 1.7;
+      color: #1e293b;
+      background: #f8fafc;
+    }
+    
+    /* Header */
+    .header {
+      background: linear-gradient(135deg, #1e3a5f 0%, #0f172a 100%);
+      padding: 24px 0;
+      box-shadow: 0 4px 20px rgba(30, 58, 95, 0.2);
+    }
+    
+    .header-content {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 0 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      color: white;
+      text-decoration: none;
+    }
+    
+    .logo-icon {
+      width: 48px;
+      height: 48px;
+    }
+    
+    .logo-text h1 {
+      font-size: 24px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+    
+    .logo-text span {
+      font-size: 12px;
+      opacity: 0.8;
+      font-weight: 400;
+    }
+    
+    .nav-links {
+      display: flex;
+      gap: 24px;
+    }
+    
+    .nav-links a {
+      color: rgba(255, 255, 255, 0.9);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+    
+    .nav-links a:hover {
+      color: #00d4aa;
+    }
+    
+    /* Main Content */
+    .main {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 48px 24px;
+    }
+    
+    .page-title {
+      font-size: 36px;
+      font-weight: 700;
+      color: #1e3a5f;
+      margin-bottom: 8px;
+      letter-spacing: -1px;
+    }
+    
+    .last-updated {
+      color: #64748b;
+      font-size: 14px;
+      margin-bottom: 40px;
+    }
+    
+    /* Sections */
+    .section {
+      background: white;
+      border-radius: 12px;
+      padding: 32px;
+      margin-bottom: 24px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+      border: 1px solid #e2e8f0;
+    }
+    
+    .section h2 {
+      font-size: 20px;
+      font-weight: 600;
+      color: #1e3a5f;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    
+    .section h2 .icon {
+      width: 28px;
+      height: 28px;
+      color: #00d4aa;
+    }
+    
+    .section h3 {
+      font-size: 16px;
+      font-weight: 600;
+      color: #1e3a5f;
+      margin: 20px 0 12px 0;
+    }
+    
+    .section p {
+      color: #475569;
+      margin-bottom: 16px;
+    }
+    
+    .section p:last-child {
+      margin-bottom: 0;
+    }
+    
+    .section ul {
+      margin: 16px 0;
+      padding-left: 24px;
+    }
+    
+    .section li {
+      color: #475569;
+      margin-bottom: 8px;
+    }
+    
+    /* Highlight Box */
+    .highlight-box {
+      background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
+      border: 1px solid #bbf7d0;
+      border-radius: 10px;
+      padding: 20px;
+      margin: 20px 0;
+    }
+    
+    .highlight-box h3 {
+      color: #166534;
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .highlight-box p {
+      color: #166534;
+      font-size: 14px;
+      margin: 0;
+    }
+    
+    /* Warning Box */
+    .warning-box {
+      background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+      border: 1px solid #fde68a;
+      border-radius: 10px;
+      padding: 20px;
+      margin: 20px 0;
+    }
+    
+    .warning-box h3 {
+      color: #92400e;
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .warning-box p {
+      color: #92400e;
+      font-size: 14px;
+      margin: 0;
+    }
+    
+    /* Contact Box */
+    .contact-box {
+      background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+      border: 1px solid #bfdbfe;
+      border-radius: 10px;
+      padding: 24px;
+      text-align: center;
+    }
+    
+    .contact-box h3 {
+      color: #1e40af;
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+    
+    .contact-box p {
+      color: #1e40af;
+      font-size: 14px;
+      margin-bottom: 16px;
+    }
+    
+    .contact-email {
+      display: inline-block;
+      background: #1e40af;
+      color: white;
+      padding: 12px 24px;
+      border-radius: 8px;
+      text-decoration: none;
+      font-weight: 500;
+      transition: background 0.2s;
+    }
+    
+    .contact-email:hover {
+      background: #1e3a8a;
+    }
+    
+    /* Footer */
+    .footer {
+      background: #1e3a5f;
+      color: white;
+      padding: 32px 0;
+      margin-top: 64px;
+    }
+    
+    .footer-content {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 0 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    
+    .footer-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    
+    .footer-logo {
+      width: 32px;
+      height: 32px;
+    }
+    
+    .footer-text {
+      font-size: 14px;
+      opacity: 0.9;
+    }
+    
+    .footer-links {
+      display: flex;
+      gap: 24px;
+    }
+    
+    .footer-links a {
+      color: rgba(255, 255, 255, 0.8);
+      text-decoration: none;
+      font-size: 14px;
+      transition: color 0.2s;
+    }
+    
+    .footer-links a:hover {
+      color: #00d4aa;
+    }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+      .header-content {
+        flex-direction: column;
+        gap: 16px;
+      }
+      
+      .nav-links {
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+      
+      .page-title {
+        font-size: 28px;
+      }
+      
+      .section {
+        padding: 24px;
+      }
+      
+      .footer-content {
+        flex-direction: column;
+        gap: 16px;
+        text-align: center;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header class="header">
+    <div class="header-content">
+      <a href="index.html" class="logo">
+        <svg class="logo-icon" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="shieldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" style="stop-color:#1e3a5f"/>
+              <stop offset="100%" style="stop-color:#0f172a"/>
+            </linearGradient>
+            <linearGradient id="checkGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" style="stop-color:#00d4aa"/>
+              <stop offset="100%" style="stop-color:#10b981"/>
+            </linearGradient>
+          </defs>
+          <path d="M50 5 L90 20 V45 C90 70 70 90 50 95 C30 90 10 70 10 45 V20 Z" 
+                fill="url(#shieldGrad)" stroke="#0f172a" stroke-width="3"/>
+          <path d="M30 50 L45 65 L70 35" 
+                fill="none" stroke="url(#checkGrad)" stroke-width="8" 
+                stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <div class="logo-text">
+          <h1>VaultGuard™</h1>
+          <span>Privacy-First CAPTCHA</span>
+        </div>
+      </a>
+      <nav class="nav-links">
+        <a href="index.html">Home</a>
+        <a href="privacy.html">Privacy</a>
+        <a href="terms.html">Terms</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="main">
+    <h1 class="page-title">Terms of Service</h1>
+    <p class="last-updated">Last updated: January 1, 2024</p>
+
+    <!-- Acceptance Section -->
+    <section class="section">
+      <h2>
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M9 12L11 14L15 10"/>
+          <circle cx="12" cy="12" r="10"/>
+        </svg>
+        Acceptance of Terms
+      </h2>
+      <p>
+        By accessing and using VaultGuard™ CAPTCHA ("the Software"), you accept and agree 
+        to be bound by the terms and provisions of this agreement. If you do not agree to 
+        these terms, please do not use the Software.
+      </p>
+      
+      <div class="highlight-box">
+        <h3>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 12L11 14L15 10"/>
+            <circle cx="12" cy="12" r="10"/>
+          </svg>
+          Free and Open Source
+        </h3>
+        <p>
+          VaultGuard™ CAPTCHA is released under the MIT License. You are free to use, 
+          modify, and distribute the software in accordance with the license terms.
+        </p>
+      </div>
+    </section>
+
+    <!-- License Section -->
+    <section class="section">
+      <h2>
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 2L3 7V12C3 17.5 6.8 22.9 12 24C17.2 22.9 21 17.5 21 12V7L12 2Z"/>
+          <path d="M8.5 12L11 14.5L15.5 9.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        License Grant
+      </h2>
+      <p>
+        Subject to the terms of this agreement, VaultGuard Technologies ("we", "us", "our") 
+        hereby grants you a limited, non-exclusive, non-transferable, royalty-free license 
+        to use VaultGuard™ CAPTCHA for both personal and commercial purposes.
+      </h3>
+      
+      <h3>You May:</h3>
+      <ul>
+        <li>Use the Software for personal, internal, or commercial purposes</li>
+        <li>Modify the Software to suit your needs</li>
+        <li>Distribute the Software as part of your own projects</li>
+        <li>Use the Software in unlimited projects</li>
+      </ul>
+      
+      <h3>You May Not:</h3>
+      <ul>
+        <li>Sell the Software as a standalone product without significant modification</li>
+        <li>Remove or alter copyright notices or license information</li>
+        <li>Hold VaultGuard Technologies liable for damages arising from use of the Software</li>
+        <li>Use the Software for illegal purposes</li>
+      </ul>
+    </section>
+
+    <!-- Usage Section -->
+    <section class="section">
+      <h2>
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+          <line x1="8" y1="21" x2="16" y2="21"/>
+          <line x1="12" y1="17" x2="12" y2="21"/>
+        </svg>
+        Acceptable Use
+      </h2>
+      <p>
+        When using VaultGuard™ CAPTCHA, you agree to:
+      </p>
+      
+      <ul>
+        <li><strong>Comply with Laws:</strong> Use the Software in compliance with all applicable local, state, national, and international laws and regulations.</li>
+        <li><strong>Respect Privacy:</strong> Implement the Software in a way that respects user privacy and complies with applicable privacy laws (GDPR, CCPA, etc.).</li>
+        <li><strong>No Misrepresentation:</strong> Not misrepresent the security capabilities of the Software to your users.</li>
+        <li><strong>Proper Implementation:</strong> Implement the Software according to the documentation and best practices.</li>
+        <li><strong>No Circumvention:</strong> Not attempt to circumvent or disable the CAPTCHA functionality for malicious purposes.</li>
+      </ul>
+    </section>
+
+    <!-- Disclaimer Section -->
+    <section class="section">
+      <h2>
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+          <line x1="12" y1="9" x2="12" y2="13"/>
+          <line x1="12" y1="17" x2="12.01" y2="17"/>
+        </svg>
+        Disclaimer of Warranty
+      </h2>
+      
+      <div class="warning-box">
+        <h3>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+            <line x1="12" y1="9" x2="12" y2="13"/>
+            <line x1="12" y1="17" x2="12.01" y2="17"/>
+          </svg>
+          Important Notice
+        </h3>
+        <p>
+          THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
+          IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
+          FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+        </p>
+      </div>
+      
+      <p>
+        VaultGuard Technologies does not warrant that:
+      </p>
+      
+      <ul>
+        <li>The Software will meet your specific requirements</li>
+        <li>The Software will be uninterrupted, timely, secure, or error-free</li>
+        <li>The results obtained from the use of the Software will be accurate or reliable</li>
+        <li>The Software will prevent all automated attacks or bot activity</li>
+      </ul>
+    </section>
+
+    <!-- Liability Section -->
+    <section class="section">
+      <h2>
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 22S8 18 8 13V7L12 5L16 7V13C16 18 12 22 12 22Z"/>
+          <line x1="9" y1="12" x2="15" y2="12"/>
+        </svg>
+        Limitation of Liability
+      </h2>
+      <p>
+        IN NO EVENT SHALL VAULTGUARD TECHNOLOGIES, ITS DIRECTORS, OFFICERS, EMPLOYEES, 
+        AGENTS, SUPPLIERS, OR LICENSORS BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, 
+        CONSEQUENTIAL, OR PUNITIVE DAMAGES, INCLUDING WITHOUT LIMITATION, LOSS OF PROFITS, 
+        DATA, USE, GOODWILL, OR OTHER INTANGIBLE LOSSES, RESULTING FROM:
+      </p>
+      
+      <ul>
+        <li>Your access to or use of or inability to access or use the Software</li>
+        <li>Any conduct or content of any third party using the Software</li>
+        <li>Any content obtained from the Software</li>
+        <li>Unauthorized access, use, or alteration of your transmissions or content</li>
+      </ul>
+      
+      <p>
+        This limitation applies regardless of the legal theory, whether based on contract, 
+        tort, negligence, strict liability, or otherwise, and even if we have been advised 
+        of the possibility of such damages.
+      </p>
+    </section>
+
+    <!-- Security Section -->
+    <section class="section">
+      <h2>
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+          <path d="M7 11V7A5 5 0 0 1 12 2A5 5 0 0 1 17 7V11"/>
+        </svg>
+        Security Considerations
+      </h2>
+      <p>
+        While VaultGuard™ CAPTCHA is designed with security in mind, no CAPTCHA system 
+        is 100% foolproof. You acknowledge that:
+      </p>
+      
+      <ul>
+        <li>
+          <strong>Client-Side Limitations:</strong> As a client-side solution, determined 
+          attackers may be able to bypass the CAPTCHA. For high-security applications, 
+          consider implementing additional server-side verification.
+        </li>
+        <li>
+          <strong>Complementary Security:</strong> CAPTCHA should be one layer of a 
+          comprehensive security strategy, not the only security measure.
+        </li>
+        <li>
+          <strong>Updates:</strong> You are responsible for keeping the Software updated 
+          to the latest version to benefit from security improvements.
+        </li>
+      </ul>
+    </section>
+
+    <!-- Modifications Section -->
+    <section class="section">
+      <h2>
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M11 4H4A2 2 0 0 0 2 6V20A2 2 0 0 0 4 22H18A2 2 0 0 0 20 20V13"/>
+          <path d="M18.5 2.5A2.121 2.121 0 0 1 21 4.5L12 14L8 16L12 12L18.5 2.5Z"/>
+        </svg>
+        Modifications to Terms
+      </h2>
+      <p>
+        We reserve the right to modify these terms of service at any time. Changes will 
+        be effective immediately upon posting. Your continued use of the Software after 
+        any changes constitutes acceptance of the new terms.
+      </p>
+      <p>
+        We will make reasonable efforts to notify users of significant changes through 
+        our website or repository, but it is your responsibility to review these terms 
+        periodically.
+      </p>
+    </section>
+
+    <!-- Governing Law Section -->
+    <section class="section">
+      <h2>
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="2" y1="12" x2="22" y2="12"/>
+          <path d="M12 2A15.3 15.3 0 0 1 16 12A15.3 15.3 0 0 1 12 22A15.3 15.3 0 0 1 8 12A15.3 15.3 0 0 1 12 2Z"/>
+        </svg>
+        Governing Law
+      </h2>
+      <p>
+        These terms shall be governed by and construed in accordance with the laws of 
+        the jurisdiction in which VaultGuard Technologies is established, without regard 
+        to its conflict of law provisions.
+      </p>
+      <p>
+        Any disputes arising under these terms shall be subject to the exclusive jurisdiction 
+        of the courts in that jurisdiction.
+      </p>
+    </section>
+
+    <!-- Contact Section -->
+    <section class="section">
+      <h2>
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M4 4H20C21.1 4 22 4.9 22 6V18C22 19.1 21.1 20 20 20H4C2.9 20 2 19.1 2 18V6C2 4.9 2.9 4 4 4Z"/>
+          <polyline points="22,6 12,13 2,6"/>
+        </svg>
+        Contact Information
+      </h2>
+      
+      <div class="contact-box">
+        <h3>Questions About These Terms?</h3>
+        <p>
+          If you have any questions or concerns about these Terms of Service, 
+          please don't hesitate to reach out to us.
+        </p>
+        <a href="mailto:legal@vaultguard-captcha.dev" class="contact-email">
+          legal@vaultguard-captcha.dev
+        </a>
+      </div>
+    </section>
+
+    <!-- Acknowledgment Section -->
+    <section class="section">
+      <h2>
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M14 2H6A2 2 0 0 0 4 4V20A2 2 0 0 0 6 22H18A2 2 0 0 0 20 20V8L14 2Z"/>
+          <polyline points="14,2 14,8 20,8"/>
+          <line x1="16" y1="13" x2="8" y2="13"/>
+          <line x1="16" y1="17" x2="8" y2="17"/>
+          <polyline points="10,9 9,9 8,9"/>
+        </svg>
+        Acknowledgment
+      </h2>
+      <p>
+        BY USING VAULTGUARD™ CAPTCHA, YOU ACKNOWLEDGE THAT YOU HAVE READ THESE TERMS 
+        OF SERVICE, UNDERSTAND THEM, AND AGREE TO BE BOUND BY THEIR TERMS AND CONDITIONS.
+      </p>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="footer-content">
+      <div class="footer-brand">
+        <svg class="footer-logo" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2L3 7V12C3 17.5 6.8 22.9 12 24C17.2 22.9 21 17.5 21 12V7L12 2Z" 
+                fill="#1e3a5f" stroke="#0f172a" stroke-width="1.5"/>
+          <path d="M8.5 12L11 14.5L15.5 9.5" 
+                stroke="#00d4aa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span class="footer-text">Protected by VaultGuard™ CAPTCHA</span>
+      </div>
+      <nav class="footer-links">
+        <a href="index.html">Home</a>
+        <a href="privacy.html">Privacy</a>
+        <a href="terms.html">Terms</a>
+      </nav>
+    </div>
+  </footer>
+</body>
+</html>
