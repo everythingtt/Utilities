@@ -656,6 +656,7 @@
       </a>
       <nav class="nav-links">
         <a href="#features">Features</a>
+        <a href="#security">Security</a>
         <a href="#demo">Demo</a>
         <a href="https://everythingtt.github.io/Utilities/dist/captcha/privacy.html">Privacy</a>
         <a href="https://everythingtt.github.io/Utilities/dist/captcha/terms.html">Terms</a>
@@ -758,6 +759,110 @@
         </div>
         <h3>Easy Integration</h3>
         <p>Drop-in solution with beautiful UI. Works in any modern browser with a single script tag.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Security Features Section -->
+  <section class="features" id="security" style="background: #0f172a; color: white; margin: 0; max-width: none; padding: 80px 24px;">
+    <div class="section-header">
+      <h2 style="color: white;">Security & Protection</h2>
+      <p style="color: rgba(255,255,255,0.7);">Built-in protections against common web attacks and automated abuse</p>
+    </div>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            <path d="M9 12l2 2 4-4"/>
+          </svg>
+        </div>
+        <h3>Anti-Bot Detection</h3>
+        <p>Behavioral analysis tracks mouse movements, keystroke dynamics, and timing patterns to distinguish humans from automated scripts. Honeypot fields catch bots that fill invisible inputs.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+          </svg>
+        </div>
+        <h3>XSS Protection</h3>
+        <p>Input sanitization encodes HTML entities, neutralizes javascript: URIs, and strips event handler patterns. Content Security Policy meta tags restrict resource loading to trusted sources.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+            <path d="M2 17l10 5 10-5"/>
+            <path d="M2 12l10 5 10-5"/>
+          </svg>
+        </div>
+        <h3>CSRF Protection</h3>
+        <p>Cryptographically random tokens bound to each session with constant-time comparison to prevent timing attacks. Tokens expire after 1 hour and are validated on every submission.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+            <line x1="8" y1="21" x2="16" y2="21"/>
+            <line x1="12" y1="17" x2="12" y2="21"/>
+          </svg>
+        </div>
+        <h3>Clickjacking Protection</h3>
+        <p>Frame-busting JavaScript prevents the page from being loaded in iframes. MutationObserver monitors for injected untrusted iframe elements and removes them automatically.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+            <circle cx="9" cy="7" r="4"/>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+          </svg>
+        </div>
+        <h3>Session Hijack Protection</h3>
+        <p>Browser fingerprinting via canvas and navigator properties binds each challenge to the browser session. Stolen tokens are useless from a different browser or device.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+          </svg>
+        </div>
+        <h3>Tabnapping Protection</h3>
+        <p>Clears window.opener references, sets strict referrer policy, and wraps window.open to add noopener/noreferrer to external links. Prevents reverse tabnapping attacks.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="8" x2="12" y2="12"/>
+            <line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+        </div>
+        <h3>Rogue Extension Detection</h3>
+        <p>Scans for suspicious DOM modifications, injected scripts from unknown sources, and unexpected global variables commonly injected by malicious browser extensions.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+            <line x1="16" y1="13" x2="8" y2="13"/>
+            <line x1="16" y1="17" x2="8" y2="17"/>
+          </svg>
+        </div>
+        <h3>Security Headers</h3>
+        <p>Generates recommended HTTP headers including X-Frame-Options, X-Content-Type-Options, Strict-Transport-Security, and Permissions-Policy. CSP meta tag injection included.</p>
       </div>
     </div>
   </section>
@@ -929,12 +1034,26 @@
 <span class="keyword">&lt;div</span> <span class="function">id</span>=<span class="string">"captcha-container"</span><span class="keyword">&gt;&lt;/div&gt;</span>
 
 <span class="keyword">&lt;script&gt;</span>
-  <span class="comment">// Initialize with quick setup</span>
+  <span class="comment">// Initialize with security features</span>
   VaultGuard.quickSetup(<span class="string">'captcha-container'</span>, {
+    captcha: {
+      expiryTime: 300000,
+      maxAttempts: 3,
+      enableBotDetection: <span class="keyword">true</span>,
+      enableCSRF: <span class="keyword">true</span>,
+      enableFingerprintBinding: <span class="keyword">true</span>,
+      enableHoneypot: <span class="keyword">true</span>
+    },
+    security: {
+      enableBehavioralTracking: <span class="keyword">true</span>,
+      enableFrameBusting: <span class="keyword">true</span>,
+      enableTabnappingProtection: <span class="keyword">true</span>,
+      enableExtensionDetection: <span class="keyword">true</span>,
+      enableCSP: <span class="keyword">true</span>
+    },
     callbacks: {
       onSuccess: (result, id) => {
         console.log(<span class="string">'Verified!'</span>, result);
-        <span class="comment">// Proceed with form submission</span>
       },
       onError: (result, id) => {
         console.log(<span class="string">'Failed:'</span>, result.error);
@@ -1011,14 +1130,27 @@
 
   <!-- VaultGuard CAPTCHA Library -->
   <script src="captcha.js"></script>
-  
+
   <!-- Initialize Demo -->
   <script>
-    // Initialize the CAPTCHA demo
+    // Initialize the CAPTCHA demo with security features
     VaultGuard.quickSetup('captcha-container', {
       captcha: {
         expiryTime: 300000, // 5 minutes
-        maxAttempts: 3
+        maxAttempts: 3,
+        enableBotDetection: true,
+        enableCSRF: true,
+        enableFingerprintBinding: true,
+        enableHoneypot: true,
+        botScoreThreshold: 0.5
+      },
+      security: {
+        enableBehavioralTracking: true,
+        enableFrameBusting: true,
+        enableTabnappingProtection: true,
+        enableExtensionDetection: true,
+        enableCSP: true,
+        enableSecurityMetas: true
       },
       callbacks: {
         onSuccess: (result, challengeId) => {
@@ -1026,13 +1158,16 @@
         },
         onError: (result, challengeId) => {
           console.log('VaultGuard: Verification failed', result);
+          if (result.securityFlag) {
+            console.warn('VaultGuard: Security flag raised —', result.securityFlag);
+          }
         },
         onChallengeLoaded: (challenge) => {
           console.log('VaultGuard: New challenge loaded', challenge.type);
         }
       }
     });
-    
+
     // Smooth scroll for anchor links
     document.querySelectorAll('a[href^="#"]').forEach(anchor => {
       anchor.addEventListener('click', function (e) {

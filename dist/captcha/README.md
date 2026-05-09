@@ -29,9 +29,13 @@
 - 👁️ **Zero Tracking** - No fingerprinting, cookies, or user tracking
 - 🚫 **No Dependencies** - Completely self-contained
 - ⏱️ **Time-Limited Challenges** - Configurable expiry (default 5 minutes)
-- 🎯 **Multiple Challenge Types** - Math, text, and pattern challenges
+- 🎯 **Multiple Challenge Types** - Math, text, pattern, and image puzzle challenges
 - 🎨 **Beautiful Branded UI** - Professional, accessible design
 - 📦 **Single File** - Easy to deploy and integrate
+- 🤖 **Anti-Bot Detection** - Behavioral analysis, honeypot fields, timing checks
+- 🛡️ **Web Attack Protection** - XSS, CSRF, clickjacking, session hijack, tabnapping
+- 🔍 **Rogue Extension Detection** - Scans for malicious browser extensions
+- 🔐 **Security Headers** - CSP generation, recommended HTTP headers
 
 ## 🚀 Quick Start
 
@@ -45,14 +49,28 @@
 </head>
 <body>
   <div id="captcha-container"></div>
-  
+
   <script src="captcha.js"></script>
   <script>
     VaultGuard.quickSetup('captcha-container', {
+      captcha: {
+        expiryTime: 300000,
+        maxAttempts: 3,
+        enableBotDetection: true,
+        enableCSRF: true,
+        enableFingerprintBinding: true,
+        enableHoneypot: true
+      },
+      security: {
+        enableBehavioralTracking: true,
+        enableFrameBusting: true,
+        enableTabnappingProtection: true,
+        enableExtensionDetection: true,
+        enableCSP: true
+      },
       callbacks: {
         onSuccess: (result, id) => {
           console.log('Verified!', result);
-          // Proceed with form submission
         },
         onError: (result, id) => {
           console.log('Failed:', result.error);
@@ -137,14 +155,24 @@ Create a new CAPTCHA instance.
   - `difficulty` (string) - `'easy'`, `'medium'`, or `'hard'` (default: `'medium'`)
   - `expiryTime` (number) - Challenge expiry in milliseconds (default: `300000`)
   - `maxAttempts` (number) - Maximum verification attempts (default: `3`)
-  - `challengeTypes` (string[]) - Available types: `'math'`, `'text'`, `'pattern'` (default: all)
+  - `challengeTypes` (string[]) - Available types: `'math'`, `'text'`, `'pattern'`, `'imagePuzzle'` (default: all)
+  - `enableBotDetection` (boolean) - Enable behavioral bot detection (default: `true`)
+  - `enableCSRF` (boolean) - Enable CSRF token protection (default: `true`)
+  - `enableFingerprintBinding` (boolean) - Bind challenges to browser fingerprint (default: `true`)
+  - `enableHoneypot` (boolean) - Deploy honeypot fields in forms (default: `true`)
+  - `botScoreThreshold` (number) - Bot score threshold 0.0-1.0 (default: `0.5`)
 
 ```javascript
 const captcha = new VaultGuard.Captcha({
   difficulty: 'hard',
   expiryTime: 600000,
   maxAttempts: 5,
-  challengeTypes: ['math', 'text']
+  challengeTypes: ['math', 'text', 'imagePuzzle'],
+  enableBotDetection: true,
+  enableCSRF: true,
+  enableFingerprintBinding: true,
+  enableHoneypot: true,
+  botScoreThreshold: 0.5
 });
 ```
 
@@ -168,22 +196,29 @@ const challenge = await captcha.generateChallenge();
 
 ---
 
-### `captcha.verifyAnswer(challengeId, userAnswer)`
+### `captcha.verifyAnswer(challengeId, userAnswer, formElement?)`
 
 Verify user's answer to a challenge.
 
 **Parameters:**
 - `challengeId` (string) - The challenge ID
 - `userAnswer` (string) - User's answer
+- `formElement` (HTMLFormElement, optional) - The form element. When provided, enables honeypot checking, CSRF validation, and fingerprint verification.
 
-**Returns:** `Promise<{ success, verified?, error?, remainingAttempts? }>`
+**Returns:** `Promise<{ success, verified?, error?, remainingAttempts?, securityFlag? }>`
 
 ```javascript
-const result = await captcha.verifyAnswer(challenge.id, '17');
+const result = await captcha.verifyAnswer(challenge.id, '17', formElement);
 // { success: true, verified: true, brand: 'VaultGuard™' }
 
-const failed = await captcha.verifyAnswer(challenge.id, '99');
+const failed = await captcha.verifyAnswer(challenge.id, '99', formElement);
 // { success: false, error: 'Incorrect answer', remainingAttempts: 2, brand: 'VaultGuard™' }
+
+// Security flag responses:
+// { success: false, error: 'Automated submission detected', securityFlag: 'honeypot_triggered' }
+// { success: false, error: 'Security token invalid...', securityFlag: 'csrf_failed' }
+// { success: false, error: 'Automated behavior detected...', securityFlag: 'bot_detected' }
+// { success: false, error: 'Session binding failed...', securityFlag: 'fingerprint_mismatch' }
 ```
 
 ---
@@ -299,11 +334,177 @@ const captcha = new VaultGuard.Captcha({
 
 ## 🔐 Security Features
 
+### Core CAPTCHA Security
+
 - **SHA-256 Hashing**: Answers are hashed with unique salts
 - **Time-Limited Challenges**: Automatic expiry prevents replay attacks
 - **Attempt Limiting**: Configurable maximum attempts prevent brute force
 - **Secure Random**: Cryptographically secure random number generation
 - **No Answer Storage**: Answers are never stored in plain text
+
+### Anti-Bot / Anti-Automation Detection
+
+Behavioral analysis distinguishes humans from automated scripts by monitoring mouse movement patterns, keystroke dynamics, touch events, and timing anomalies. Honeypot fields (invisible to humans) catch bots that blindly fill all form inputs.
+
+```javascript
+const captcha = new VaultGuard.Captcha({
+  enableBotDetection: true,
+  botScoreThreshold: 0.5  // 0.0 = lenient, 1.0 = strict
+});
+```
+
+**Detection heuristics:**
+- Zero mouse movements with form submission
+- Perfectly linear mouse trajectories (bots move in straight lines)
+- Keystroke intervals with very low variance (machine-like uniformity)
+- Submission faster than a human could read and answer
+- No touch events on touch-capable devices
+
+### CSRF Protection
+
+Cryptographically random tokens bound to each session with constant-time comparison to prevent timing attacks. Tokens expire after 1 hour.
+
+```javascript
+const captcha = new VaultGuard.Captcha({
+  enableCSRF: true
+});
+```
+
+### Session Hijack Protection
+
+Browser fingerprinting via canvas rendering and navigator properties binds each challenge to the browser session. Stolen tokens are useless from a different browser or device.
+
+```javascript
+const captcha = new VaultGuard.Captcha({
+  enableFingerprintBinding: true
+});
+```
+
+### Honeypot Fields
+
+Invisible form fields that bots fill out but humans cannot see. Any filled honeypot field immediately flags the submission as automated.
+
+```javascript
+const captcha = new VaultGuard.Captcha({
+  enableHoneypot: true
+});
+```
+
+---
+
+## 🛡️ Web Protection Features
+
+The `VaultGuard.Security` module provides client-side protections against common web attacks. Initialize via the `security` option in `quickSetup`:
+
+```javascript
+VaultGuard.quickSetup('captcha-container', {
+  security: {
+    enableBehavioralTracking: true,
+    enableFrameBusting: true,
+    enableTabnappingProtection: true,
+    enableExtensionDetection: true,
+    enableCSP: true,
+    enableSecurityMetas: true
+  }
+});
+```
+
+### XSS Protection
+
+Input sanitization encodes HTML entities, neutralizes `javascript:` and `data:` URI schemes, and strips event handler patterns. Content Security Policy meta tags restrict resource loading.
+
+```javascript
+// Sanitize user input
+const safe = VaultGuard.Security.sanitizeInput(userInput);
+
+// Safely set text on an element
+VaultGuard.Security.safeSetText(element, userInput);
+
+// Generate CSP header value
+const csp = VaultGuard.Security.generateCSP({
+  'script-src': ["'self'", "'nonce-abc123'"]
+});
+```
+
+### Clickjacking Protection
+
+Frame-busting JavaScript prevents the page from being loaded in iframes. MutationObserver monitors for injected untrusted iframe elements and removes them.
+
+```javascript
+VaultGuard.Security.injectFrameBuster();
+
+// Recommended server header
+// X-Frame-Options: DENY
+```
+
+### Tabnapping Protection
+
+Clears `window.opener` references, sets strict referrer policy, and wraps `window.open` to add `noopener`/`noreferrer` to external links.
+
+```javascript
+VaultGuard.Security.protectAgainstTabnapping();
+VaultGuard.Security.secureExternalLinks();
+```
+
+### Rogue Extension Detection
+
+Scans for suspicious DOM modifications, injected scripts from unknown sources, and unexpected global variables commonly injected by malicious browser extensions.
+
+```javascript
+const result = VaultGuard.Security.detectRogueExtensions();
+// {
+//   detected: true,
+//   findings: [
+//     { type: 'external_script', src: 'https://evil.com/inject.js', severity: 'high' },
+//     { type: 'suspicious_globals', globals: ['__phantom'], severity: 'medium' }
+//   ],
+//   riskLevel: 'high'
+// }
+```
+
+### Security Headers
+
+Generates recommended HTTP headers. These should be configured on the server side:
+
+```javascript
+const headers = VaultGuard.Security.getRecommendedHeaders();
+// {
+//   'X-Content-Type-Options': 'nosniff',
+//   'X-Frame-Options': 'DENY',
+//   'X-XSS-Protection': '1; mode=block',
+//   'Referrer-Policy': 'strict-origin-when-cross-origin',
+//   'Permissions-Policy': 'camera=(), microphone=(), geolocation=(), payment=()',
+//   'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
+//   'Content-Security-Policy': "default-src 'self'; ..."
+// }
+```
+
+### Security Module API Reference
+
+| Method | Description |
+|--------|-------------|
+| `Security.init(options)` | Initialize all client-side protections |
+| `Security.initBehavioralTracking()` | Start monitoring mouse/key/touch events |
+| `Security.analyzeBehavior()` | Returns `{ score, signals, isBot }` |
+| `Security.deployHoneypot(form)` | Add invisible honeypot fields to a form |
+| `Security.checkHoneypot(form)` | Returns `true` if a honeypot was filled |
+| `Security.sanitizeInput(input)` | XSS-safe encoding of user input |
+| `Security.safeSetText(el, text)` | Safe DOM text insertion |
+| `Security.generateCSP(rules)` | Generate CSP header value |
+| `Security.injectCSPMeta()` | Inject CSP meta tag |
+| `Security.generateCSRFToken()` | Create session-bound CSRF token |
+| `Security.validateCSRFToken(token)` | Validate a CSRF token |
+| `Security.injectCSRFField(form)` | Add hidden CSRF field to form |
+| `Security.injectFrameBuster()` | Frame-breaking + iframe detection |
+| `Security.generateFingerprint()` | Browser fingerprint hash |
+| `Security.verifyFingerprint(fp)` | Verify fingerprint matches |
+| `Security.bindChallengeToSession(id)` | Bind challenge to fingerprint |
+| `Security.verifyChallengeSession(id)` | Verify challenge session binding |
+| `Security.protectAgainstTabnapping()` | Clear opener, set referrer policy |
+| `Security.secureExternalLinks()` | Add noopener/noreferrer to links |
+| `Security.detectRogueExtensions()` | Scan for malicious extensions |
+| `Security.getRecommendedHeaders()` | Get recommended HTTP headers |
+| `Security.injectSecurityMetas()` | Inject security meta tags |
 
 ## 🛡️ Privacy Features
 

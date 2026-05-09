@@ -1987,6 +1987,21 @@
         throw new Error('Form element and CAPTCHA instance are required');
       }
 
+      // Initialize client-side security protections
+      if (typeof SecurityModule !== 'undefined') {
+        SecurityModule.init(callbacks.security);
+
+        const secConfig = captchaInstance._securityConfig || {};
+
+        if (secConfig.enableHoneypot !== false) {
+          SecurityModule.deployHoneypot(formElement);
+        }
+
+        if (secConfig.enableCSRF !== false) {
+          SecurityModule.injectCSRFField(formElement);
+        }
+      }
+
       const loadingEl = formElement.querySelector('.vg-loading');
       const challengeAreaEl = formElement.querySelector('.vg-challenge-area');
       const questionEl = formElement.querySelector('.vg-question');
@@ -2103,7 +2118,7 @@
         showMessage('Verifying...', 'info');
 
         try {
-          const result = await captchaInstance.verifyAnswer(currentChallenge.id, userAnswer);
+          const result = await captchaInstance.verifyAnswer(currentChallenge.id, userAnswer, formElement);
           
           if (result.success && result.verified) {
             showMessage('✓ Identity verified successfully!', 'success');
@@ -2191,33 +2206,42 @@
   const VaultGuard = {
     // Brand info
     brand: VAULTGUARD,
-    
+
     // Core classes
     Captcha: VaultGuardCaptcha,
     UI: VaultGuardUI,
-    
+
     // Utilities
     Crypto: CryptoUtils,
     Challenges: ChallengeGenerators,
-    
+
+    // Security module
+    Security: SecurityModule,
+
     /**
      * Quick setup helper
      * @param {string} containerId - Container element ID
      * @param {Object} options - Configuration options
+     * @param {Object} options.captcha - Captcha constructor options
+     * @param {Object} options.callbacks - Event callbacks
+     * @param {Object} options.security - Security module init options
      * @returns {Object} Setup result with captcha, form, and controller
      */
     async quickSetup(containerId, options = {}) {
       const captcha = new VaultGuardCaptcha(options.captcha);
-      const form = VaultGuardUI.createForm(containerId);
-      const controller = await VaultGuardUI.init(form, captcha, options.callbacks || {});
-      
+      const form = VaultGuardUI.createForm(containerId, options);
+      const controller = await VaultGuardUI.init(form, captcha, {
+        ...options.callbacks,
+        security: options.security
+      });
+
       return {
         captcha,
         form,
         controller
       };
     },
-    
+
     /**
      * Get version info
      * @returns {Object} Version information
