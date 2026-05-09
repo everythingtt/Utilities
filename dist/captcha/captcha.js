@@ -2003,6 +2003,7 @@
       const form = document.createElement('form');
       form.className = 'vaultguard-captcha-form';
       form.setAttribute('data-vg-version', VAULTGUARD.version);
+      form.setAttribute('novalidate', 'novalidate');
       
       form.innerHTML = `
         <style>
@@ -2611,7 +2612,8 @@
       const textChallengeEl = formElement.querySelector('.vg-text-challenge');
       const imagePuzzleEl = formElement.querySelector('.vg-image-puzzle');
       const imageGridEl = formElement.querySelector('.vg-image-grid');
-      const verifyButtonEl = formElement.querySelector('.vg-verify-button');
+      const imageVerifyButtonEl = formElement.querySelector('.vg-image-puzzle .vg-verify-button');
+      const pathVerifyButtonEl = formElement.querySelector('.vg-path-challenge .vg-verify-button');
       const inputEl = formElement.querySelector('.vg-input');
       const buttonEl = formElement.querySelector('.vg-button');
       const messageEl = formElement.querySelector('.vg-message');
@@ -2831,6 +2833,13 @@
         pathAnswerData = { points: [], startTime: null, endTime: null };
         isTracing = false;
 
+        const pathImageData = pathCtx.getImageData(0, 0, canvas.width, canvas.height);
+
+        const redrawPathBackground = () => {
+          if (!pathCtx) return;
+          pathCtx.putImageData(pathImageData, 0, 0);
+        };
+
         const startTrace = (e) => {
           e.preventDefault();
           isTracing = true;
@@ -2879,21 +2888,26 @@
 
         const drawTrace = () => {
           if (!pathCtx) return;
-          pathCtx.clearRect(0, 0, canvas.width, canvas.height);
-          pathCtx.strokeStyle = '#00d4aa';
+          redrawPathBackground();
+          pathCtx.strokeStyle = '#f59e0b';
           pathCtx.lineWidth = 3;
           pathCtx.lineCap = 'round';
           pathCtx.lineJoin = 'round';
-          pathCtx.shadowColor = 'rgba(0, 212, 170, 0.5)';
+          pathCtx.shadowColor = 'rgba(245, 158, 11, 0.5)';
           pathCtx.shadowBlur = 8;
 
-          if (tracePoints.length > 1) {
+          if (tracePoints.length > 0) {
             pathCtx.beginPath();
             pathCtx.moveTo(tracePoints[0].x, tracePoints[0].y);
             for (let i = 1; i < tracePoints.length; i++) {
               pathCtx.lineTo(tracePoints[i].x, tracePoints[i].y);
             }
             pathCtx.stroke();
+
+            pathCtx.fillStyle = '#f59e0b';
+            pathCtx.beginPath();
+            pathCtx.arc(tracePoints[tracePoints.length - 1].x, tracePoints[tracePoints.length - 1].y, 4, 0, Math.PI * 2);
+            pathCtx.fill();
           }
           pathCtx.shadowBlur = 0;
         };
@@ -2911,7 +2925,7 @@
             tracePoints = [];
             pathAnswerData = { points: [], startTime: null, endTime: null };
             isTracing = false;
-            if (pathCtx) pathCtx.clearRect(0, 0, canvas.width, canvas.height);
+            redrawPathBackground();
             if (pathStatus) pathStatus.innerHTML = 'Trace the line from <strong>S</strong> to <strong>E</strong>';
           };
         }
@@ -2923,7 +2937,8 @@
         messageEl.style.display = 'none';
         inputEl.value = '';
         buttonEl.disabled = true;
-        if (verifyButtonEl) verifyButtonEl.disabled = true;
+        if (imageVerifyButtonEl) imageVerifyButtonEl.disabled = true;
+        if (pathVerifyButtonEl) pathVerifyButtonEl.disabled = true;
         attemptsUsed = 0;
         updateAttemptDots(0, 3);
         selectedImages = [];
@@ -2939,7 +2954,7 @@
             case 'imagePuzzle':
               imagePuzzleEl.style.display = 'block';
               renderImageGrid(currentChallenge.images);
-              if (verifyButtonEl) verifyButtonEl.disabled = false;
+              if (imageVerifyButtonEl) imageVerifyButtonEl.disabled = false;
               break;
 
             case 'textIllusion':
@@ -2971,7 +2986,7 @@
             case 'visualPath':
               if (pathChallengeEl) pathChallengeEl.style.display = 'block';
               setupPathChallenge(currentChallenge);
-              if (verifyButtonEl) verifyButtonEl.disabled = false;
+              if (pathVerifyButtonEl) pathVerifyButtonEl.disabled = false;
               break;
 
             default:
@@ -3000,11 +3015,24 @@
         messageEl.style.display = 'flex';
       };
 
+      const disableVerifyButtons = () => {
+        if (imageVerifyButtonEl) imageVerifyButtonEl.disabled = true;
+        if (pathVerifyButtonEl) pathVerifyButtonEl.disabled = true;
+      };
+
+      const enableVerifyButtons = () => {
+        if (currentChallenge && currentChallenge.type === 'imagePuzzle' && imageVerifyButtonEl) {
+          imageVerifyButtonEl.disabled = false;
+        } else if (currentChallenge && currentChallenge.type === 'visualPath' && pathVerifyButtonEl) {
+          pathVerifyButtonEl.disabled = false;
+        }
+      };
+
       const verifyAnswer = async (userAnswer) => {
         if (!currentChallenge) return;
 
         buttonEl.disabled = true;
-        if (verifyButtonEl) verifyButtonEl.disabled = true;
+        disableVerifyButtons();
         showMessage('Verifying...', 'info');
 
         try {
@@ -3041,14 +3069,14 @@
               setTimeout(loadChallenge, 1500);
             } else {
               buttonEl.disabled = false;
-              if (verifyButtonEl) verifyButtonEl.disabled = false;
+              enableVerifyButtons();
             }
           }
         } catch (error) {
           showMessage('Verification failed. Please try again.', 'error');
           console.error(`${VAULTGUARD.name} verification error:`, error);
           buttonEl.disabled = false;
-          if (verifyButtonEl) verifyButtonEl.disabled = false;
+          enableVerifyButtons();
         }
       };
 
@@ -3074,29 +3102,31 @@
         await verifyAnswer(userAnswer);
       });
 
-      if (verifyButtonEl) {
-        verifyButtonEl.addEventListener('click', async () => {
+      if (imageVerifyButtonEl) {
+        imageVerifyButtonEl.addEventListener('click', async () => {
           if (!currentChallenge) return;
-
-          if (currentChallenge.type === 'imagePuzzle') {
-            if (selectedImages.length === 0) {
-              showMessage('Please select at least one image', 'error');
-              return;
-            }
-            const sortedSelection = [...selectedImages].sort((a, b) => a - b);
-            await verifyAnswer(sortedSelection.join(','));
-          } else if (currentChallenge.type === 'visualPath') {
-            if (!pathAnswerData || !pathAnswerData.points || pathAnswerData.points.length === 0) {
-              showMessage('Please trace the line first', 'error');
-              return;
-            }
-            if (!pathAnswerData.endTime) {
-              showMessage('Please complete your trace', 'error');
-              return;
-            }
-            const tracePayload = JSON.stringify(pathAnswerData);
-            await verifyAnswer(tracePayload);
+          if (selectedImages.length === 0) {
+            showMessage('Please select at least one image', 'error');
+            return;
           }
+          const sortedSelection = [...selectedImages].sort((a, b) => a - b);
+          await verifyAnswer(sortedSelection.join(','));
+        });
+      }
+
+      if (pathVerifyButtonEl) {
+        pathVerifyButtonEl.addEventListener('click', async () => {
+          if (!currentChallenge) return;
+          if (!pathAnswerData || !pathAnswerData.points || pathAnswerData.points.length === 0) {
+            showMessage('Please trace the line first', 'error');
+            return;
+          }
+          if (!pathAnswerData.endTime) {
+            showMessage('Please complete your trace', 'error');
+            return;
+          }
+          const tracePayload = JSON.stringify(pathAnswerData);
+          await verifyAnswer(tracePayload);
         });
       }
 
