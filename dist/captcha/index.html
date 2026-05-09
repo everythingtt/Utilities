@@ -1133,16 +1133,49 @@
 
   <!-- Initialize Demo -->
   <script>
-    // Initialize the CAPTCHA demo with security features
+    // Set up hooks for the demo
+    const demoHooks = new VaultGuard.Hooks();
+
+    demoHooks
+      .on('onChallengeGenerated', (data) => {
+        console.log('[VaultGuard Hook] Challenge generated:', data.type, data.challengeId);
+      })
+      .on('onClientVerified', (data) => {
+        console.log('[VaultGuard Hook] Gate 1 (client) passed:', data.type);
+      })
+      .on('onBotDetected', (data) => {
+        console.warn('[VaultGuard Hook] Bot detected! Score:', data.score, 'Signals:', data.signals);
+      })
+      .on('onHoneypotTriggered', (data) => {
+        console.warn('[VaultGuard Hook] Honeypot triggered:', data.challengeId);
+      })
+      .on('onSecurityFlag', (data) => {
+        console.warn('[VaultGuard Hook] Security flag:', data.flag);
+      })
+      .on('onSuccess', (data) => {
+        console.log('[VaultGuard Hook] Success! Server verified:', data.serverVerified);
+      })
+      .on('onError', (data) => {
+        console.log('[VaultGuard Hook] Error:', data.error);
+      })
+      .on('onImageRetry', (data) => {
+        console.log('[VaultGuard Hook] Image retry ' + data.retryCount + '/' + data.maxRetries + ' for index ' + data.index);
+      })
+      .on('onImageLoadFailed', (data) => {
+        console.warn('[VaultGuard Hook] Image load failed for index ' + data.index + ', using SVG fallback');
+      });
+
+    // Initialize the CAPTCHA demo with security features and hooks
     VaultGuard.quickSetup('captcha-container', {
       captcha: {
-        expiryTime: 300000, // 5 minutes
+        expiryTime: 300000,
         maxAttempts: 3,
         enableBotDetection: true,
         enableCSRF: true,
         enableFingerprintBinding: true,
         enableHoneypot: true,
-        botScoreThreshold: 0.5
+        botScoreThreshold: 0.5,
+        hooks: demoHooks
       },
       security: {
         enableBehavioralTracking: true,
@@ -1167,6 +1200,25 @@
         }
       }
     });
+
+    // Example: Double-Gate Validation setup (commented out — requires server)
+    /*
+    const captcha = new VaultGuard.Captcha({
+      expiryTime: 300000,
+      maxAttempts: 3,
+      hooks: demoHooks
+    });
+
+    const server = new VaultGuard.ServerExtension({
+      endpoint: '/api/vaultguard',
+      secret: 'your-server-secret',
+      timeout: 10000,
+      retries: 2,
+      hooks: demoHooks
+    });
+
+    server.attach(captcha);
+    */
 
     // Smooth scroll for anchor links
     document.querySelectorAll('a[href^="#"]').forEach(anchor => {

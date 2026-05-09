@@ -31,8 +31,8 @@
  * - 🚫 No external dependencies
  * - 🎨 Beautiful branded UI components
  * 
- * Website: https://vaultguard-captcha.dev
- * Documentation: https://docs.vaultguard-captcha.dev
+ * Website: https://everythingtt.github.io/Utilities/dist/captcha/
+ * Documentation: https://github.com/everythingtt/Utilities
  */
 
 (function(global) {
@@ -1239,8 +1239,30 @@
         botScoreThreshold: options.botScoreThreshold || 0.5
       };
 
+      // Hooks system
+      this._hooks = options.hooks || null;
+
       // Cleanup expired challenges periodically
       setInterval(() => this.cleanup(), 60000);
+    }
+
+    setHooks(hooks) {
+      this._hooks = hooks;
+      return this;
+    }
+
+    getHooks() {
+      return this._hooks;
+    }
+
+    async _emitHook(event, data = {}) {
+      if (this._hooks && typeof this._hooks.emit === 'function') {
+        try {
+          await this._hooks.emit(event, data);
+        } catch (e) {
+          // Hooks must never break the CAPTCHA flow
+        }
+      }
     }
 
     /**
@@ -1286,13 +1308,22 @@
         SecurityModule.bindChallengeToSession(challengeId).catch(() => {});
       }
 
-      return {
+      const result = {
         id: challengeId,
         question: challenge.question,
         type: challengeType,
         expiresIn: this.options.expiryTime,
         images: challenge.images || null
       };
+
+      this._emitHook('onChallengeGenerated', {
+        challengeId,
+        type: challengeType,
+        question: challenge.question,
+        expiresIn: this.options.expiryTime
+      });
+
+      return result;
     }
 
     /**
@@ -1315,6 +1346,7 @@
       if (Date.now() - challenge.createdAt > challenge.expiryTime) {
         this.challenges.delete(challengeId);
         this.attempts.delete(challengeId);
+        this._emitHook('onChallengeExpired', { challengeId });
         return {
           success: false,
           error: 'Challenge expired',
@@ -1337,6 +1369,8 @@
         if (SecurityModule.checkHoneypot(formElement)) {
           this.challenges.delete(challengeId);
           this.attempts.delete(challengeId);
+          this._emitHook('onHoneypotTriggered', { challengeId, securityFlag: 'honeypot_triggered' });
+          this._emitHook('onSecurityFlag', { challengeId, flag: 'honeypot_triggered' });
           return {
             success: false,
             error: 'Automated submission detected',
@@ -1352,6 +1386,8 @@
         if (csrfInput) {
           const isValidCSRF = SecurityModule.validateCSRFToken(csrfInput.value);
           if (!isValidCSRF) {
+            this._emitHook('onCSRFInvalid', { challengeId, securityFlag: 'csrf_failed' });
+            this._emitHook('onSecurityFlag', { challengeId, flag: 'csrf_failed' });
             return {
               success: false,
               error: 'Security token invalid. Please reload the page.',
@@ -1368,6 +1404,8 @@
         if (behavior.isBot && behavior.score >= this._securityConfig.botScoreThreshold) {
           this.challenges.delete(challengeId);
           this.attempts.delete(challengeId);
+          this._emitHook('onBotDetected', { challengeId, score: behavior.score, signals: behavior.signals });
+          this._emitHook('onSecurityFlag', { challengeId, flag: 'bot_detected', score: behavior.score });
           return {
             success: false,
             error: 'Automated behavior detected. Please try again.',
@@ -1383,6 +1421,8 @@
         if (!sessionValid) {
           this.challenges.delete(challengeId);
           this.attempts.delete(challengeId);
+          this._emitHook('onFingerprintMismatch', { challengeId, securityFlag: 'fingerprint_mismatch' });
+          this._emitHook('onSecurityFlag', { challengeId, flag: 'fingerprint_mismatch' });
           return {
             success: false,
             error: 'Session binding failed. Please reload the page.',
@@ -1396,6 +1436,8 @@
       if (currentAttempts >= challenge.maxAttempts) {
         this.challenges.delete(challengeId);
         this.attempts.delete(challengeId);
+        this._emitHook('onMaxAttemptsExceeded', { challengeId, maxAttempts: challenge.maxAttempts });
+        this._emitHook('onError', { challengeId, error: 'Maximum attempts exceeded' });
         return {
           success: false,
           error: 'Maximum attempts exceeded',
@@ -1413,6 +1455,8 @@
 
       if (isValid) {
         challenge.solved = true;
+        this._emitHook('onClientVerified', { challengeId, type: challenge.type });
+        this._emitHook('onSuccess', { challengeId, type: challenge.type, serverVerified: false });
         return {
           success: true,
           verified: true,
@@ -1420,6 +1464,7 @@
         };
       } else {
         const remainingAttempts = challenge.maxAttempts - (currentAttempts + 1);
+        this._emitHook('onError', { challengeId, error: 'Incorrect answer', remainingAttempts });
         return {
           success: false,
           error: 'Incorrect answer',
@@ -1870,6 +1915,25 @@
             justify-content: center;
             font-size: 24px;
           }
+
+          .vg-image-cell.vg-image-retrying {
+            opacity: 0.6;
+          }
+
+          .vg-image-cell.vg-image-retrying::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 20px;
+            height: 20px;
+            margin: -10px 0 0 -10px;
+            border: 2px solid ${VAULTGUARD.brandColors.border};
+            border-top: 2px solid ${VAULTGUARD.brandColors.primary};
+            border-radius: 50%;
+            animation: vg-spin 0.8s linear infinite;
+            z-index: 2;
+          }
           
           .vg-image-cell .vg-image-placeholder {
             width: 100%;
@@ -2030,27 +2094,76 @@
         });
       };
 
+      const generateFallbackSVG = (index) => {
+        const colors = [
+          ['#1e3a5f', '#00d4aa'], ['#0f172a', '#10b981'], ['#1e293b', '#f59e0b'],
+          ['#334155', '#60a5fa'], ['#475569', '#c084fc'], ['#1e3a5f', '#f472b6'],
+          ['#0f172a', '#34d399'], ['#1e293b', '#fbbf24'], ['#334155', '#818cf8']
+        ];
+        const [bg, fg] = colors[index % colors.length];
+        const patterns = [
+          `<rect width="100" height="100" fill="${bg}"/><circle cx="50" cy="50" r="30" fill="${fg}" opacity="0.8"/><rect x="35" y="35" width="30" height="30" fill="${bg}" transform="rotate(45 50 50)"/>`,
+          `<rect width="100" height="100" fill="${bg}"/><rect x="20" y="20" width="60" height="60" rx="10" fill="${fg}" opacity="0.7"/><rect x="35" y="35" width="30" height="30" fill="${bg}"/>`,
+          `<rect width="100" height="100" fill="${bg}"/><polygon points="50,15 85,85 15,85" fill="${fg}" opacity="0.7"/><rect x="40" y="40" width="20" height="20" fill="${bg}"/>`,
+          `<rect width="100" height="100" fill="${bg}"/><circle cx="35" cy="35" r="20" fill="${fg}" opacity="0.6"/><circle cx="65" cy="65" r="20" fill="${fg}" opacity="0.6"/>`,
+          `<rect width="100" height="100" fill="${bg}"/><path d="M10 50 L50 10 L90 50 L50 90 Z" fill="${fg}" opacity="0.7"/><circle cx="50" cy="50" r="15" fill="${bg}"/>`,
+          `<rect width="100" height="100" fill="${bg}"/><rect x="15" y="15" width="25" height="25" fill="${fg}" opacity="0.7"/><rect x="60" y="15" width="25" height="25" fill="${fg}" opacity="0.5"/><rect x="15" y="60" width="25" height="25" fill="${fg}" opacity="0.5"/><rect x="60" y="60" width="25" height="25" fill="${fg}" opacity="0.7"/>`,
+          `<rect width="100" height="100" fill="${bg}"/><circle cx="50" cy="50" r="35" fill="none" stroke="${fg}" stroke-width="8" opacity="0.7"/><line x1="25" y1="25" x2="75" y2="75" stroke="${bg}" stroke-width="6"/>`,
+          `<rect width="100" height="100" fill="${bg}"/><path d="M50 10 L61 35 L88 35 L67 55 L75 82 L50 68 L25 82 L33 55 L12 35 L39 35 Z" fill="${fg}" opacity="0.7"/>`,
+          `<rect width="100" height="100" fill="${bg}"/><rect x="10" y="40" width="80" height="20" rx="10" fill="${fg}" opacity="0.7"/><rect x="40" y="10" width="20" height="80" rx="10" fill="${fg}" opacity="0.7"/>`
+        ];
+        const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">${patterns[index % patterns.length]}</svg>`;
+        return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+      };
+
+      const loadImageWithRetry = (img, cell, imgSrc, index, retryCount = 0) => {
+        const maxRetries = 3;
+
+        img.onerror = function() {
+          if (retryCount < maxRetries) {
+            const separator = imgSrc.includes('?') ? '&' : '?';
+            const retrySrc = `${imgSrc}${separator}_t=${Date.now()}_r=${retryCount}`;
+            cell.classList.add('vg-image-retrying');
+            if (captchaInstance && typeof captchaInstance._emitHook === 'function') {
+              captchaInstance._emitHook('onImageRetry', { index, retryCount: retryCount + 1, maxRetries, src: imgSrc });
+            }
+            img.src = retrySrc;
+          } else {
+            img.style.display = 'none';
+            cell.classList.remove('vg-image-retrying');
+            cell.classList.add('vg-image-error');
+            const fallbackImg = document.createElement('img');
+            fallbackImg.src = generateFallbackSVG(index);
+            fallbackImg.alt = `Image ${index + 1}`;
+            fallbackImg.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:7px;display:block;';
+            cell.appendChild(fallbackImg);
+            if (captchaInstance && typeof captchaInstance._emitHook === 'function') {
+              captchaInstance._emitHook('onImageLoadFailed', { index, src: imgSrc, fallback: 'svg' });
+            }
+          }
+        };
+
+        img.src = imgSrc;
+      };
+
       const renderImageGrid = (images) => {
         imageGridEl.innerHTML = '';
         selectedImages = [];
-        
+
         images.forEach((imgSrc, index) => {
           const cell = document.createElement('div');
           cell.className = 'vg-image-cell';
           cell.dataset.index = index;
-          
+
           const img = document.createElement('img');
-          img.src = imgSrc;
           img.alt = `Image ${index + 1}`;
           img.loading = 'eager';
-          img.onerror = function() {
-            this.style.display = 'none';
-            cell.classList.add('vg-image-error');
-            cell.textContent = '📷';
-          };
-          
+          img.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:7px;display:block;';
+
+          loadImageWithRetry(img, cell, imgSrc, index);
+
           cell.appendChild(img);
-          
+
           cell.addEventListener('click', () => {
             cell.classList.toggle('selected');
             if (cell.classList.contains('selected')) {
@@ -2059,7 +2172,7 @@
               selectedImages = selectedImages.filter(i => i !== index);
             }
           });
-          
+
           imageGridEl.appendChild(cell);
         });
       };
@@ -2200,6 +2313,373 @@
   };
 
   // ═══════════════════════════════════════════════════════════════════════════════
+  // VAULTGUARD HOOKS SYSTEM — Lifecycle Events
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // Built-in hooks for extending VaultGuard behavior at key lifecycle points.
+  // All hooks are optional. Hooks fire asynchronously and errors are caught
+  // so they never break the CAPTCHA flow.
+  //
+  // Available hooks:
+  //   onChallengeGenerated  — Fired when a new challenge is created
+  //   onChallengeExpired    — Fired when a challenge expires
+  //   onClientVerified      — Fired after client-side verification (before server gate)
+  //   onServerVerified      — Fired after server-side verification (Double-Gate)
+  //   onServerRejected      — Fired when server rejects a client-verified challenge
+  //   onSecurityFlag        — Fired when any security check triggers a flag
+  //   onBotDetected         — Fired when behavioral analysis flags a bot
+  //   onHoneypotTriggered   — Fired when a honeypot field is filled
+  //   onCSRFInvalid         — Fired when CSRF validation fails
+  //   onFingerprintMismatch — Fired when browser fingerprint doesn't match
+  //   onImageLoadFailed     — Fired when an image puzzle image fails to load
+  //   onImageRetry          — Fired when an image puzzle retries loading
+  //   onMaxAttemptsExceeded — Fired when max attempts are exceeded
+  //   onSuccess             — Fired on fully verified success (both gates passed)
+  //   onError               — Fired on any verification error
+  //
+  // Usage:
+  //   const hooks = new VaultGuard.Hooks();
+  //   hooks.on('onBotDetected', (data) => { /* custom logic */ });
+  //   hooks.on('onSuccess', (data) => { /* proceed */ });
+  //   captchaInstance.setHooks(hooks);
+
+  class VaultGuardHooks {
+    constructor() {
+      this._handlers = {};
+      this._globalHandlers = [];
+    }
+
+    on(event, handler) {
+      if (typeof handler !== 'function') {
+        throw new Error(`VaultGuardHooks: handler for "${event}" must be a function`);
+      }
+      if (!this._handlers[event]) {
+        this._handlers[event] = [];
+      }
+      this._handlers[event].push(handler);
+      return this;
+    }
+
+    off(event, handler) {
+      if (!this._handlers[event]) return this;
+      if (!handler) {
+        delete this._handlers[event];
+      } else {
+        this._handlers[event] = this._handlers[event].filter(h => h !== handler);
+        if (this._handlers[event].length === 0) {
+          delete this._handlers[event];
+        }
+      }
+      return this;
+    }
+
+    onAny(handler) {
+      if (typeof handler !== 'function') {
+        throw new Error('VaultGuardHooks: global handler must be a function');
+      }
+      this._globalHandlers.push(handler);
+      return this;
+    }
+
+    offAny(handler) {
+      if (!handler) {
+        this._globalHandlers = [];
+      } else {
+        this._globalHandlers = this._globalHandlers.filter(h => h !== handler);
+      }
+      return this;
+    }
+
+    async emit(event, data = {}) {
+      const eventData = { event, timestamp: Date.now(), ...data };
+
+      for (const handler of this._globalHandlers) {
+        try {
+          await handler(eventData);
+        } catch (e) {
+          // Hooks must never break the CAPTCHA flow
+        }
+      }
+
+      const handlers = this._handlers[event] || [];
+      for (const handler of handlers) {
+        try {
+          await handler(eventData);
+        } catch (e) {
+          // Hooks must never break the CAPTCHA flow
+        }
+      }
+
+      return this;
+    }
+
+    hasHandlers(event) {
+      return !!(this._handlers[event] && this._handlers[event].length > 0);
+    }
+
+    clear() {
+      this._handlers = {};
+      this._globalHandlers = [];
+      return this;
+    }
+
+    static get availableEvents() {
+      return [
+        'onChallengeGenerated',
+        'onChallengeExpired',
+        'onClientVerified',
+        'onServerVerified',
+        'onServerRejected',
+        'onSecurityFlag',
+        'onBotDetected',
+        'onHoneypotTriggered',
+        'onCSRFInvalid',
+        'onFingerprintMismatch',
+        'onImageLoadFailed',
+        'onImageRetry',
+        'onMaxAttemptsExceeded',
+        'onSuccess',
+        'onError'
+      ];
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // VAULTGUARD SERVER EXTENSION — Double-Gate Validation
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // Optional server-side companion for enhanced security.
+  // VaultGuard works fully serverless by default. This extension adds a second
+  // validation gate: the client generates and verifies challenges locally (Gate 1),
+  // then the server independently re-verifies the challenge answer (Gate 2).
+  //
+  // Usage with hooks:
+  //   const hooks = new VaultGuard.Hooks();
+  //   hooks.on('onServerVerified', (data) => { console.log('Gate 2 passed'); });
+  //   hooks.on('onServerRejected', (data) => { console.log('Gate 2 blocked'); });
+  //
+  //   const server = new VaultGuard.ServerExtension({
+  //     endpoint: '/api/vaultguard',
+  //     secret: 'your-server-secret',
+  //     hooks: hooks
+  //   });
+  //   server.attach(captchaInstance);
+  //
+  // Server endpoint receives: { challengeId, answer, clientToken, fingerprint }
+  // Server responds: { valid: boolean, serverToken?: string, error?: string }
+
+  class VaultGuardServerExtension {
+    constructor(options = {}) {
+      this.options = {
+        endpoint: options.endpoint || '/api/vaultguard',
+        secret: options.secret || '',
+        timeout: options.timeout || 10000,
+        retries: options.retries || 2,
+        retryDelay: options.retryDelay || 1000,
+        enabled: options.enabled !== false,
+        onServerVerified: options.onServerVerified || null,
+        onServerError: options.onServerError || null,
+        hooks: options.hooks || null,
+        ...options
+      };
+
+      this._attachedCaptcha = null;
+      this._pendingVerifications = new Map();
+    }
+
+    setHooks(hooks) {
+      this.options.hooks = hooks;
+      return this;
+    }
+
+    getHooks() {
+      return this.options.hooks;
+    }
+
+    async _emitHook(event, data = {}) {
+      if (this.options.hooks && typeof this.options.hooks.emit === 'function') {
+        try {
+          await this.options.hooks.emit(event, data);
+        } catch (e) {
+          // Hooks must never break the flow
+        }
+      }
+
+      if (event === 'onServerVerified' && typeof this.options.onServerVerified === 'function') {
+        try { this.options.onServerVerified(data); } catch (e) {}
+      }
+      if (event === 'onServerRejected' && typeof this.options.onServerError === 'function') {
+        try { this.options.onServerError(data); } catch (e) {}
+      }
+    }
+
+    attach(captchaInstance) {
+      if (!captchaInstance || typeof captchaInstance.verifyAnswer !== 'function') {
+        throw new Error('VaultGuardServerExtension: Invalid captcha instance');
+      }
+
+      this._attachedCaptcha = captchaInstance;
+
+      const originalVerify = captchaInstance.verifyAnswer.bind(captchaInstance);
+
+      const self = this;
+      captchaInstance.verifyAnswer = async (challengeId, userAnswer, formElement = null) => {
+        if (!self.options.enabled) {
+          return originalVerify(challengeId, userAnswer, formElement);
+        }
+
+        const clientResult = await originalVerify(challengeId, userAnswer, formElement);
+
+        if (!clientResult.success) {
+          return clientResult;
+        }
+
+        const serverResult = await self._serverVerify(challengeId, userAnswer, clientResult);
+
+        if (!serverResult.valid) {
+          self._emitHook('onServerRejected', {
+            challengeId,
+            error: serverResult.error,
+            clientResult
+          });
+          self._emitHook('onSecurityFlag', {
+            challengeId,
+            flag: 'server_rejected'
+          });
+          return {
+            success: false,
+            error: serverResult.error || 'Server verification failed',
+            securityFlag: 'server_rejected',
+            brand: VAULTGUARD.name
+          };
+        }
+
+        self._emitHook('onServerVerified', {
+          challengeId,
+          serverToken: serverResult.serverToken,
+          clientResult
+        });
+        self._emitHook('onSuccess', {
+          challengeId,
+          serverVerified: true,
+          serverToken: serverResult.serverToken
+        });
+
+        return {
+          ...clientResult,
+          serverVerified: true,
+          serverToken: serverResult.serverToken || null
+        };
+      };
+
+      return this;
+    }
+
+    detach() {
+      if (this._attachedCaptcha && this._originalVerify) {
+        this._attachedCaptcha.verifyAnswer = this._originalVerify;
+      }
+      this._attachedCaptcha = null;
+      return this;
+    }
+
+    async _serverVerify(challengeId, userAnswer, clientResult) {
+      const clientToken = await this._generateClientToken(challengeId, userAnswer);
+      const fingerprint = await this._getFingerprint();
+
+      let lastError = null;
+
+      for (let attempt = 0; attempt <= this.options.retries; attempt++) {
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), this.options.timeout);
+
+          const response = await fetch(this.options.endpoint, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-VaultGuard-Client': VAULTGUARD.version
+            },
+            body: JSON.stringify({
+              challengeId,
+              answer: userAnswer,
+              clientToken,
+              fingerprint,
+              timestamp: Date.now()
+            }),
+            signal: controller.signal
+          });
+
+          clearTimeout(timeoutId);
+
+          if (!response.ok) {
+            throw new Error(`Server returned ${response.status}`);
+          }
+
+          const data = await response.json();
+
+          if (typeof this.options.onServerVerified === 'function') {
+            this.options.onServerVerified(data, challengeId);
+          }
+
+          return { valid: true, serverToken: data.serverToken };
+
+        } catch (err) {
+          lastError = err;
+
+          if (attempt < this.options.retries) {
+            await this._delay(this.options.retryDelay * (attempt + 1));
+          }
+        }
+      }
+
+      if (typeof this.options.onServerError === 'function') {
+        this.options.onServerError(lastError, challengeId);
+      }
+
+      return {
+        valid: false,
+        error: lastError ? lastError.message : 'Server verification unavailable'
+      };
+    }
+
+    async _generateClientToken(challengeId, userAnswer) {
+      const data = `${challengeId}:${userAnswer}:${Date.now()}`;
+      if (typeof CryptoUtils !== 'undefined' && CryptoUtils.hash) {
+        return CryptoUtils.hash(data);
+      }
+      return btoa(data);
+    }
+
+    async _getFingerprint() {
+      if (typeof SecurityModule !== 'undefined' && SecurityModule.generateFingerprint) {
+        try {
+          return await SecurityModule.generateFingerprint();
+        } catch (e) {
+          return 'unavailable';
+        }
+      }
+      return 'unavailable';
+    }
+
+    _delay(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    enable() {
+      this.options.enabled = true;
+      return this;
+    }
+
+    disable() {
+      this.options.enabled = false;
+      return this;
+    }
+
+    isEnabled() {
+      return this.options.enabled;
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════════
   // VAULTGUARD EXPORT
   // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -2217,6 +2697,12 @@
 
     // Security module
     Security: SecurityModule,
+
+    // Hooks system
+    Hooks: VaultGuardHooks,
+
+    // Server extension (Double-Gate Validation)
+    ServerExtension: VaultGuardServerExtension,
 
     /**
      * Quick setup helper

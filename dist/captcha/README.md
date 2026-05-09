@@ -19,9 +19,9 @@
 
 **A privacy-first, cryptographically secure CAPTCHA solution in a single file.**
 
-[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/vaultguard/captcha)
-[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Privacy](https://img.shields.io/badge/privacy-zero%20tracking-brightgreen.svg)](https://vaultguard-captcha.dev/privacy)
+[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/everythingtt/Utilities)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/everythingtt/Utilities/blob/main/LICENSE)
+[![Privacy](https://img.shields.io/badge/privacy-zero%20tracking-brightgreen.svg)](https://everythingtt.github.io/Utilities/dist/captcha/privacy.html)
 
 ## ✨ Features
 
@@ -550,12 +550,191 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
+## 🪝 Hooks System
+
+VaultGuard includes a built-in hooks system for extending behavior at key lifecycle points. All hooks are optional, fire asynchronously, and errors are caught so they never break the CAPTCHA flow.
+
+### Available Hooks
+
+| Hook | Fired When |
+|------|-----------|
+| `onChallengeGenerated` | A new challenge is created |
+| `onChallengeExpired` | A challenge expires before being solved |
+| `onClientVerified` | Client-side verification passes (Gate 1) |
+| `onServerVerified` | Server-side verification passes (Gate 2) |
+| `onServerRejected` | Server rejects a client-verified challenge |
+| `onSecurityFlag` | Any security check triggers a flag |
+| `onBotDetected` | Behavioral analysis flags a bot |
+| `onHoneypotTriggered` | A honeypot field is filled |
+| `onCSRFInvalid` | CSRF validation fails |
+| `onFingerprintMismatch` | Browser fingerprint doesn't match |
+| `onImageLoadFailed` | An image puzzle image fails to load |
+| `onImageRetry` | An image puzzle retries loading |
+| `onMaxAttemptsExceeded` | Max attempts are exceeded |
+| `onSuccess` | Fully verified success (both gates passed) |
+| `onError` | Any verification error |
+
+### Basic Usage
+
+```javascript
+const hooks = new VaultGuard.Hooks();
+
+hooks.on('onBotDetected', (data) => {
+  console.log('Bot detected! Score:', data.score);
+  console.log('Signals:', data.signals);
+});
+
+hooks.on('onHoneypotTriggered', (data) => {
+  console.log('Honeypot triggered for challenge:', data.challengeId);
+});
+
+hooks.on('onSuccess', (data) => {
+  console.log('Verified! Server gate:', data.serverVerified);
+});
+
+hooks.on('onError', (data) => {
+  console.log('Error:', data.error);
+});
+
+// Attach to captcha instance
+const captcha = new VaultGuard.Captcha({ hooks });
+```
+
+### Global Handler
+
+Listen to all hook events:
+
+```javascript
+const hooks = new VaultGuard.Hooks();
+
+hooks.onAny((data) => {
+  console.log(`[${data.event}]`, data);
+});
+```
+
+### Chaining
+
+```javascript
+const hooks = new VaultGuard.Hooks()
+  .on('onBotDetected', handleBot)
+  .on('onSuccess', handleSuccess)
+  .on('onError', handleError);
+```
+
+---
+
+## 🔄 Double-Gate Validation (Server Extension)
+
+VaultGuard works **fully serverless by default**. For enhanced security, the optional `ServerExtension` adds a second validation gate:
+
+- **Gate 1 (Client)**: Challenge is generated and verified locally in the browser
+- **Gate 2 (Server)**: The server independently re-verifies the challenge answer
+
+This prevents attackers from bypassing client-side validation, as the server performs its own verification.
+
+### Setup
+
+```javascript
+// 1. Create captcha instance
+const captcha = new VaultGuard.Captcha({
+  expiryTime: 300000,
+  maxAttempts: 3
+});
+
+// 2. Create server extension
+const server = new VaultGuard.ServerExtension({
+  endpoint: '/api/vaultguard',
+  secret: 'your-server-secret',
+  timeout: 10000,
+  retries: 2
+});
+
+// 3. Attach to captcha (this wraps verifyAnswer with Double-Gate)
+server.attach(captcha);
+
+// 4. Optionally attach hooks
+const hooks = new VaultGuard.Hooks();
+hooks.on('onServerVerified', (data) => {
+  console.log('Both gates passed!');
+});
+hooks.on('onServerRejected', (data) => {
+  console.log('Server rejected:', data.error);
+});
+server.setHooks(hooks);
+```
+
+### Server Endpoint Contract
+
+Your server endpoint receives:
+
+```json
+{
+  "challengeId": "abc123...",
+  "answer": "42",
+  "clientToken": "sha256hash...",
+  "fingerprint": "browser-fingerprint-hash",
+  "timestamp": 1234567890
+}
+```
+
+Your server responds:
+
+```json
+// Success
+{ "valid": true, "serverToken": "optional-token-for-client" }
+
+// Rejection
+{ "valid": false, "error": "Reason for rejection" }
+```
+
+### Server Extension Options
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `endpoint` | string | `/api/vaultguard` | Server verification endpoint |
+| `secret` | string | `''` | Shared secret for server communication |
+| `timeout` | number | `10000` | Request timeout in ms |
+| `retries` | number | `2` | Number of retry attempts |
+| `retryDelay` | number | `1000` | Delay between retries (ms) |
+| `enabled` | boolean | `true` | Enable/disable server verification |
+| `hooks` | Hooks | `null` | VaultGuard Hooks instance |
+| `onServerVerified` | function | `null` | Legacy callback for server verification |
+| `onServerError` | function | `null` | Legacy callback for server errors |
+
+### Disabling Server Gate
+
+```javascript
+// Temporarily disable (falls back to client-only)
+server.disable();
+
+// Re-enable
+server.enable();
+
+// Check status
+server.isEnabled(); // true/false
+```
+
+### Error Handling
+
+When the server is unreachable after all retries, the verification fails with `securityFlag: 'server_rejected'`. Your hook or callback can handle this gracefully:
+
+```javascript
+hooks.on('onServerRejected', (data) => {
+  if (data.error.includes('unavailable')) {
+    // Server is down — optionally allow client-only verification
+    console.warn('Server verification unavailable');
+  }
+});
+```
+
+---
+
 ## 🔗 Links
 
-- **Website**: https://vaultguard-captcha.dev
-- **Documentation**: https://docs.vaultguard-captcha.dev
-- **GitHub**: https://github.com/vaultguard/captcha
-- **Issues**: https://github.com/vaultguard/captcha/issues
+- **Website**: https://everythingtt.github.io/Utilities/dist/captcha/
+- **Documentation**: https://github.com/everythingtt/Utilities
+- **GitHub**: https://github.com/everythingtt/Utilities
+- **Issues**: https://github.com/everythingtt/Utilities/issues
 
 ## 🤝 Contributing
 
@@ -563,7 +742,7 @@ Contributions are welcome! Please read our [Contributing Guide](CONTRIBUTING.md)
 
 ## 📧 Contact
 
-- **Email**: support@vaultguard-captcha.dev
+- **GitHub**: https://github.com/everythingtt/Utilities
 - **Twitter**: [@VaultGuardCaptcha](https://twitter.com/VaultGuardCaptcha)
 
 ---
