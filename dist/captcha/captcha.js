@@ -1229,7 +1229,16 @@
 
       this.challenges = new Map();
       this.attempts = new Map();
-      
+
+      // Security configuration
+      this._securityConfig = {
+        enableBotDetection: options.enableBotDetection !== false,
+        enableCSRF: options.enableCSRF !== false,
+        enableFingerprintBinding: options.enableFingerprintBinding !== false,
+        enableHoneypot: options.enableHoneypot !== false,
+        botScoreThreshold: options.botScoreThreshold || 0.5
+      };
+
       // Cleanup expired challenges periodically
       setInterval(() => this.cleanup(), 60000);
     }
@@ -1272,6 +1281,11 @@
       this.challenges.set(challengeId, challengeData);
       this.attempts.set(challengeId, 0);
 
+      // Bind challenge to browser fingerprint if enabled
+      if (this._securityConfig.enableFingerprintBinding && typeof SecurityModule !== 'undefined') {
+        SecurityModule.bindChallengeToSession(challengeId).catch(() => {});
+      }
+
       return {
         id: challengeId,
         question: challenge.question,
@@ -1287,7 +1301,7 @@
      * @param {string} userAnswer - User's answer
      * @returns {Promise<Object>} Verification result
      */
-    async verifyAnswer(challengeId, userAnswer) {
+    async verifyAnswer(challengeId, userAnswer, formElement = null) {
       const challenge = this.challenges.get(challengeId);
       
       if (!challenge) {
@@ -1314,6 +1328,68 @@
           verified: true,
           brand: VAULTGUARD.name
         };
+      }
+
+      // ── Security checks ──
+
+      // 1. Honeypot check
+      if (this._securityConfig.enableHoneypot && formElement && typeof SecurityModule !== 'undefined') {
+        if (SecurityModule.checkHoneypot(formElement)) {
+          this.challenges.delete(challengeId);
+          this.attempts.delete(challengeId);
+          return {
+            success: false,
+            error: 'Automated submission detected',
+            securityFlag: 'honeypot_triggered',
+            brand: VAULTGUARD.name
+          };
+        }
+      }
+
+      // 2. CSRF token validation
+      if (this._securityConfig.enableCSRF && formElement && typeof SecurityModule !== 'undefined') {
+        const csrfInput = formElement.querySelector('[name="vg_csrf_token"]');
+        if (csrfInput) {
+          const isValidCSRF = SecurityModule.validateCSRFToken(csrfInput.value);
+          if (!isValidCSRF) {
+            return {
+              success: false,
+              error: 'Security token invalid. Please reload the page.',
+              securityFlag: 'csrf_failed',
+              brand: VAULTGUARD.name
+            };
+          }
+        }
+      }
+
+      // 3. Behavioral bot detection
+      if (this._securityConfig.enableBotDetection && typeof SecurityModule !== 'undefined') {
+        const behavior = SecurityModule.analyzeBehavior();
+        if (behavior.isBot && behavior.score >= this._securityConfig.botScoreThreshold) {
+          this.challenges.delete(challengeId);
+          this.attempts.delete(challengeId);
+          return {
+            success: false,
+            error: 'Automated behavior detected. Please try again.',
+            securityFlag: 'bot_detected',
+            brand: VAULTGUARD.name
+          };
+        }
+      }
+
+      // 4. Fingerprint session binding verification
+      if (this._securityConfig.enableFingerprintBinding && typeof SecurityModule !== 'undefined') {
+        const sessionValid = await SecurityModule.verifyChallengeSession(challengeId);
+        if (!sessionValid) {
+          this.challenges.delete(challengeId);
+          this.attempts.delete(challengeId);
+          return {
+            success: false,
+            error: 'Session binding failed. Please reload the page.',
+            securityFlag: 'fingerprint_mismatch',
+            brand: VAULTGUARD.name
+          };
+        }
       }
 
       const currentAttempts = this.attempts.get(challengeId) || 0;
