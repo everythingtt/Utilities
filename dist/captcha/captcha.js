@@ -153,6 +153,801 @@
   };
 
   // ═══════════════════════════════════════════════════════════════════════════════
+  // VAULTGUARD SECURITY MODULE — Anti-Bot & Web Protection
+  // ═══════════════════════════════════════════════════════════════════════════════
+
+  const SecurityModule = {
+    _initialized: false,
+    _sessionToken: null,
+    _fingerprint: null,
+    _behaviorData: {
+      mouseMovements: [],
+      keyPresses: [],
+      touchEvents: [],
+      startTime: null,
+      lastActivity: null,
+      totalInteractions: 0
+    },
+    _honeypotFields: [],
+    _securityHeaders: {},
+
+    // ─── ANTI-BOT / ANTI-AUTOMATION ──────────────────────────────────────────
+
+    /**
+     * Initialize behavioral tracking for bot detection.
+     * Monitors mouse movement patterns, keystroke dynamics, touch events,
+     * and timing anomalies that distinguish humans from automated scripts.
+     */
+    initBehavioralTracking() {
+      if (this._behaviorData.startTime) return;
+      this._behaviorData.startTime = Date.now();
+      this._behaviorData.lastActivity = Date.now();
+
+      const moveHandler = (e) => {
+        const now = Date.now();
+        this._behaviorData.mouseMovements.push({
+          x: e.clientX,
+          y: e.clientY,
+          t: now
+        });
+        if (this._behaviorData.mouseMovements.length > 200) {
+          this._behaviorData.mouseMovements.shift();
+        }
+        this._behaviorData.lastActivity = now;
+        this._behaviorData.totalInteractions++;
+      };
+
+      const keyHandler = (e) => {
+        const now = Date.now();
+        this._behaviorData.keyPresses.push({
+          key: e.key.length === 1 ? '*' : e.key,
+          t: now
+        });
+        if (this._behaviorData.keyPresses.length > 100) {
+          this._behaviorData.keyPresses.shift();
+        }
+        this._behaviorData.lastActivity = now;
+        this._behaviorData.totalInteractions++;
+      };
+
+      const touchHandler = (e) => {
+        const now = Date.now();
+        const touches = [];
+        for (let i = 0; i < e.touches.length; i++) {
+          touches.push({ x: e.touches[i].clientX, y: e.touches[i].clientY });
+        }
+        this._behaviorData.touchEvents.push({ touches, t: now });
+        if (this._behaviorData.touchEvents.length > 100) {
+          this._behaviorData.touchEvents.shift();
+        }
+        this._behaviorData.lastActivity = now;
+        this._behaviorData.totalInteractions++;
+      };
+
+      document.addEventListener('mousemove', moveHandler, { passive: true });
+      document.addEventListener('keydown', keyHandler, { passive: true });
+      document.addEventListener('touchstart', touchHandler, { passive: true });
+      document.addEventListener('touchmove', touchHandler, { passive: true });
+    },
+
+    /**
+     * Analyze collected behavioral data to produce a bot-likelihood score.
+     * Returns a score from 0.0 (definitely human) to 1.0 (definitely bot).
+     *
+     * Detection heuristics:
+     * - Zero mouse movements with form submission = bot
+     * - Perfectly linear mouse trajectories = bot
+     * - Keystroke intervals too uniform (low variance) = bot
+     * - Submission too fast for a human to read/answer = bot
+     * - No touch events on a touch-capable device = suspicious
+     */
+    analyzeBehavior() {
+      const data = this._behaviorData;
+      const timeOnPage = Date.now() - (data.startTime || Date.now());
+      let score = 0.0;
+      const signals = [];
+
+      // Signal 1: No mouse movement at all
+      if (data.mouseMovements.length === 0) {
+        score += 0.35;
+        signals.push('no_mouse_movement');
+      }
+
+      // Signal 2: Mouse movement too linear (bots move in straight lines)
+      if (data.mouseMovements.length >= 3) {
+        let directionChanges = 0;
+        let totalSegments = 0;
+        for (let i = 2; i < data.mouseMovements.length; i++) {
+          const dx1 = data.mouseMovements[i - 1].x - data.mouseMovements[i - 2].x;
+          const dy1 = data.mouseMovements[i - 1].y - data.mouseMovements[i - 2].y;
+          const dx2 = data.mouseMovements[i].x - data.mouseMovements[i - 1].x;
+          const dy2 = data.mouseMovements[i].y - data.mouseMovements[i - 1].y;
+          const cross = dx1 * dy2 - dy1 * dx2;
+          if (Math.abs(cross) > 10) directionChanges++;
+          totalSegments++;
+        }
+        const linearity = totalSegments > 0 ? 1 - (directionChanges / totalSegments) : 1;
+        if (linearity > 0.95 && totalSegments > 5) {
+          score += 0.25;
+          signals.push('linear_mouse_path');
+        }
+      }
+
+      // Signal 3: Keystroke dynamics too uniform
+      if (data.keyPresses.length >= 3) {
+        const intervals = [];
+        for (let i = 1; i < data.keyPresses.length; i++) {
+          intervals.push(data.keyPresses[i].t - data.keyPresses[i - 1].t);
+        }
+        const mean = intervals.reduce((a, b) => a + b, 0) / intervals.length;
+        const variance = intervals.reduce((a, b) => a + (b - mean) ** 2, 0) / intervals.length;
+        const cv = mean > 0 ? Math.sqrt(variance) / mean : 0;
+        if (cv < 0.1 && intervals.length > 3) {
+          score += 0.2;
+          signals.push('uniform_keystrokes');
+        }
+      }
+
+      // Signal 4: Submission impossibly fast (< 1.5 seconds)
+      if (timeOnPage < 1500) {
+        score += 0.25;
+        signals.push('too_fast_submission');
+      }
+
+      // Signal 5: No interactions at all
+      if (data.totalInteractions === 0) {
+        score += 0.3;
+        signals.push('zero_interactions');
+      }
+
+      // Signal 6: Touch-capable device but no touch events
+      if ('ontouchstart' in window && data.touchEvents.length === 0 && timeOnPage > 3000) {
+        score += 0.1;
+        signals.push('no_touch_on_touch_device');
+      }
+
+      return {
+        score: Math.min(score, 1.0),
+        signals,
+        timeOnPage,
+        interactionCount: data.totalInteractions,
+        isBot: score >= 0.5
+      };
+    },
+
+    /**
+     * Create invisible honeypot fields that bots fill out but humans cannot see.
+     * Any filled honeypot field indicates automated submission.
+     * @param {HTMLFormElement} form - The form to add honeypots to
+     * @returns {string[]} Names of honeypot fields created
+     */
+    deployHoneypot(form) {
+      const fieldNames = [];
+      const honeypotConfigs = [
+        { name: 'website_url', type: 'text', placeholder: 'Your website URL' },
+        { name: 'email_confirm', type: 'email', placeholder: 'Confirm your email' },
+        { name: 'terms_agree', type: 'checkbox', label: 'I agree to receive newsletters' }
+      ];
+
+      honeypotConfigs.forEach(config => {
+        const wrapper = document.createElement('div');
+        wrapper.style.cssText = 'position:absolute;left:-9999px;top:-9999px;opacity:0;height:0;width:0;overflow:hidden;';
+        wrapper.setAttribute('aria-hidden', 'true');
+        wrapper.setAttribute('tabindex', '-1');
+
+        if (config.type === 'checkbox') {
+          const label = document.createElement('label');
+          const input = document.createElement('input');
+          input.type = 'checkbox';
+          input.name = config.name;
+          input.setAttribute('tabindex', '-1');
+          label.appendChild(input);
+          label.appendChild(document.createTextNode(' ' + config.label));
+          wrapper.appendChild(label);
+        } else {
+          const input = document.createElement('input');
+          input.type = config.type;
+          input.name = config.name;
+          input.placeholder = config.placeholder;
+          input.setAttribute('autocomplete', 'off');
+          input.setAttribute('tabindex', '-1');
+          wrapper.appendChild(input);
+        }
+
+        form.appendChild(wrapper);
+        this._honeypotFields.push(config.name);
+        fieldNames.push(config.name);
+      });
+
+      return fieldNames;
+    },
+
+    /**
+     * Check if any honeypot fields were filled (indicates bot).
+     * @param {HTMLFormElement} form - The form to check
+     * @returns {boolean} True if a honeypot was triggered
+     */
+    checkHoneypot(form) {
+      for (const name of this._honeypotFields) {
+        const field = form.querySelector(`[name="${name}"]`);
+        if (field) {
+          if (field.type === 'checkbox' && field.checked) return true;
+          if (field.type !== 'checkbox' && field.value && field.value.trim() !== '') return true;
+        }
+      }
+      return false;
+    },
+
+    // ─── XSS PROTECTION ──────────────────────────────────────────────────────
+
+    /**
+     * Sanitize user input to prevent XSS attacks.
+     * Strips HTML tags, encodes special characters, and neutralizes
+     * javascript: and data: URI schemes.
+     * @param {string} input - Raw user input
+     * @returns {string} Sanitized string safe for insertion into DOM
+     */
+    sanitizeInput(input) {
+      if (typeof input !== 'string') return '';
+
+      let sanitized = input;
+
+      // Remove null bytes
+      sanitized = sanitized.replace(/\0/g, '');
+
+      // Encode HTML entities
+      const entityMap = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#x27;',
+        '/': '&#x2F;',
+        '`': '&#96;'
+      };
+      sanitized = sanitized.replace(/[&<>"'\/`]/g, char => entityMap[char]);
+
+      // Neutralize javascript: and data: URI schemes
+      sanitized = sanitized.replace(/javascript:/gi, 'blocked:');
+      sanitized = sanitized.replace(/data:text\/html/gi, 'blocked:');
+      sanitized = sanitized.replace(/vbscript:/gi, 'blocked:');
+
+      // Remove event handler patterns
+      sanitized = sanitized.replace(/on\w+\s*=/gi, 'blocked=');
+
+      return sanitized;
+    },
+
+    /**
+     * Safely set text content on an element, preventing XSS via innerHTML.
+     * @param {HTMLElement} element - Target element
+     * @param {string} text - Text to set
+     */
+    safeSetText(element, text) {
+      if (element) {
+        element.textContent = this.sanitizeInput(text);
+      }
+    },
+
+    /**
+     * Generate Content-Security-Policy header value for the host page.
+     * Should be set as a <meta> tag or HTTP header by the server.
+     * @param {Object} customRules - Additional CSP directives
+     * @returns {string} CSP header value
+     */
+    generateCSP(customRules = {}) {
+      const defaults = {
+        'default-src': ["'self'"],
+        'script-src': ["'self'"],
+        'style-src': ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+        'img-src': ["'self'", 'https://loremflickr.com', 'https://upload.wikimedia.org', 'data:'],
+        'font-src': ["'self'", 'https://fonts.gstatic.com'],
+        'connect-src': ["'self'"],
+        'frame-ancestors': ["'none'"],
+        'form-action': ["'self'"],
+        'base-uri': ["'self'"]
+      };
+
+      const merged = { ...defaults, ...customRules };
+      const directives = [];
+      for (const [directive, sources] of Object.entries(merged)) {
+        if (Array.isArray(sources) && sources.length > 0) {
+          directives.push(`${directive} ${sources.join(' ')}`);
+        }
+      }
+      return directives.join('; ');
+    },
+
+    /**
+     * Inject a CSP meta tag into the document head.
+     * Note: HTTP headers are preferred; meta tags have limited support.
+     */
+    injectCSPMeta() {
+      if (document.querySelector('meta[http-equiv="Content-Security-Policy"]')) return;
+      const meta = document.createElement('meta');
+      meta.httpEquiv = 'Content-Security-Policy';
+      meta.content = this.generateCSP();
+      document.head.appendChild(meta);
+    },
+
+    // ─── CSRF PROTECTION ─────────────────────────────────────────────────────
+
+    /**
+     * Generate a CSRF token bound to the current session.
+     * The token is a cryptographically random value stored in sessionStorage.
+     * @returns {string} CSRF token
+     */
+    generateCSRFToken() {
+      const token = CryptoUtils.generateToken(32);
+      try {
+        sessionStorage.setItem('vg_csrf_token', token);
+        sessionStorage.setItem('vg_csrf_time', Date.now().toString());
+      } catch (e) {
+        // sessionStorage unavailable — fall back to memory
+        this._sessionToken = token;
+      }
+      return token;
+    },
+
+    /**
+     * Validate a submitted CSRF token against the stored token.
+     * Tokens expire after 1 hour.
+     * @param {string} submittedToken - Token from the form submission
+     * @returns {boolean} True if token is valid
+     */
+    validateCSRFToken(submittedToken) {
+      let storedToken;
+      try {
+        storedToken = sessionStorage.getItem('vg_csrf_token');
+        const storedTime = parseInt(sessionStorage.getItem('vg_csrf_time') || '0', 10);
+        if (Date.now() - storedTime > 3600000) {
+          sessionStorage.removeItem('vg_csrf_token');
+          sessionStorage.removeItem('vg_csrf_time');
+          return false;
+        }
+      } catch (e) {
+        storedToken = this._sessionToken;
+      }
+
+      if (!storedToken || !submittedToken) return false;
+
+      // Constant-time comparison to prevent timing attacks
+      if (storedToken.length !== submittedToken.length) return false;
+      let result = 0;
+      for (let i = 0; i < storedToken.length; i++) {
+        result |= storedToken.charCodeAt(i) ^ submittedToken.charCodeAt(i);
+      }
+      return result === 0;
+    },
+
+    /**
+     * Inject a hidden CSRF token field into a form.
+     * @param {HTMLFormElement} form - The form to protect
+     * @returns {string} The CSRF token value
+     */
+    injectCSRFField(form) {
+      const token = this.generateCSRFToken();
+      const input = document.createElement('input');
+      input.type = 'hidden';
+      input.name = 'vg_csrf_token';
+      input.value = token;
+      form.appendChild(input);
+      return token;
+    },
+
+    // ─── CLICKJACKING PROTECTION ──────────────────────────────────────────────
+
+    /**
+     * Inject frame-busting JavaScript that prevents the page from being
+     * loaded in an iframe. This is a client-side defense; the server
+     * should also send X-Frame-Options: DENY or CSP frame-ancestors.
+     */
+    injectFrameBuster() {
+      if (window.self !== window.top) {
+        // We're in an iframe — attempt to break out
+        try {
+          window.top.location = window.self.location;
+        } catch (e) {
+          // Cross-origin restriction — hide the entire page
+          document.body.style.display = 'none';
+          throw new Error('VaultGuard: This page cannot be displayed in a frame. Clickjacking attempt detected.');
+        }
+      }
+
+      // Monitor for iframe insertion via MutationObserver
+      const observer = new MutationObserver((mutations) => {
+        for (const mutation of mutations) {
+          for (const node of mutation.addedNodes) {
+            if (node.nodeName === 'IFRAME') {
+              const src = node.getAttribute('src') || '';
+              const isTrusted = src === '' || src.startsWith(window.location.origin);
+              if (!isTrusted) {
+                node.remove();
+                console.warn('VaultGuard: Removed untrusted iframe element.');
+              }
+            }
+          }
+        }
+      });
+
+      if (document.body) {
+        observer.observe(document.body, { childList: true, subtree: true });
+      } else {
+        document.addEventListener('DOMContentLoaded', () => {
+          observer.observe(document.body, { childList: true, subtree: true });
+        });
+      }
+    },
+
+    /**
+     * Generate the recommended X-Frame-Options header value.
+     * Server should set: X-Frame-Options: DENY
+     * @returns {string} Recommended header value
+     */
+    getFrameOptionsHeader() {
+      return 'DENY';
+    },
+
+    // ─── SESSION HIJACK PROTECTION ────────────────────────────────────────────
+
+    /**
+     * Generate a browser fingerprint using available navigator and screen
+     * properties. This fingerprint is used to bind the CAPTCHA session
+     * to the browser, making stolen tokens unusable from a different browser.
+     *
+     * This is NOT tracking — it is used only for session binding.
+     * @returns {Promise<string>} SHA-256 hash of fingerprint components
+     */
+    async generateFingerprint() {
+      const components = [
+        navigator.userAgent,
+        navigator.language,
+        screen.colorDepth.toString(),
+        screen.width.toString() + 'x' + screen.height.toString(),
+        Intl.DateTimeFormat().resolvedOptions().timeZone,
+        navigator.hardwareConcurrency?.toString() || '0',
+        navigator.platform || ''
+      ];
+
+      // Add canvas fingerprint component
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = 200;
+        canvas.height = 50;
+        const ctx = canvas.getContext('2d');
+        ctx.textBaseline = 'top';
+        ctx.font = '14px Arial';
+        ctx.fillStyle = '#f60';
+        ctx.fillRect(0, 0, 200, 50);
+        ctx.fillStyle = '#069';
+        ctx.fillText('VaultGuard FP', 2, 15);
+        ctx.fillStyle = 'rgba(102,204,0,0.7)';
+        ctx.fillText('VaultGuard FP', 4, 17);
+        components.push(canvas.toDataURL());
+      } catch (e) {
+        components.push('canvas_blocked');
+      }
+
+      const fingerprintString = components.join('|');
+      this._fingerprint = await CryptoUtils.hash(fingerprintString);
+      return this._fingerprint;
+    },
+
+    /**
+     * Verify that the current browser fingerprint matches the one
+     * recorded when the session was created.
+     * @param {string} originalFingerprint - The fingerprint from session creation
+     * @returns {Promise<boolean>} True if fingerprints match
+     */
+    async verifyFingerprint(originalFingerprint) {
+      if (!originalFingerprint) return false;
+      const current = await this.generateFingerprint();
+      return current === originalFingerprint;
+    },
+
+    /**
+     * Bind a challenge to the current browser fingerprint.
+     * The challenge can only be verified from the same browser.
+     * @param {string} challengeId - The challenge ID to bind
+     * @returns {Promise<string>} The fingerprint hash
+     */
+    async bindChallengeToSession(challengeId) {
+      const fingerprint = await this.generateFingerprint();
+      try {
+        sessionStorage.setItem('vg_challenge_fp_' + challengeId, fingerprint);
+        sessionStorage.setItem('vg_challenge_time_' + challengeId, Date.now().toString());
+      } catch (e) {
+        // sessionStorage unavailable
+      }
+      return fingerprint;
+    },
+
+    /**
+     * Verify a challenge submission against its bound fingerprint.
+     * @param {string} challengeId - The challenge ID
+     * @returns {Promise<boolean>} True if the session is valid
+     */
+    async verifyChallengeSession(challengeId) {
+      let storedFp, storedTime;
+      try {
+        storedFp = sessionStorage.getItem('vg_challenge_fp_' + challengeId);
+        storedTime = parseInt(sessionStorage.getItem('vg_challenge_time_' + challengeId) || '0', 10);
+      } catch (e) {
+        return true; // Can't verify without storage — allow
+      }
+
+      if (!storedFp) return true;
+
+      // Check if session binding has expired (30 minutes)
+      if (Date.now() - storedTime > 1800000) {
+        return false;
+      }
+
+      const currentFp = await this.generateFingerprint();
+      return currentFp === storedFp;
+    },
+
+    // ─── TABNAPPING PROTECTION ───────────────────────────────────────────────
+
+    /**
+     * Protect against tabnapping by clearing the window.opener reference
+     * and injecting a referrer policy. Should be called on page load.
+     */
+    protectAgainstTabnapping() {
+      // Clear opener to prevent reverse tabnapping
+      if (window.opener) {
+        try {
+          window.opener = null;
+        } catch (e) {
+          // Some browsers restrict this
+        }
+      }
+
+      // Set referrer policy to prevent leaking referrer to external sites
+      let meta = document.querySelector('meta[name="referrer"]');
+      if (!meta) {
+        meta = document.createElement('meta');
+        meta.name = 'referrer';
+        meta.content = 'strict-origin-when-cross-origin';
+        document.head.appendChild(meta);
+      }
+
+      // Monitor window.open calls
+      const originalOpen = window.open;
+      window.open = function(...args) {
+        const url = args[0];
+        if (url && typeof url === 'string' && !url.startsWith(window.location.origin)) {
+          // Add noopener and noreferrer to external links
+          const features = args[2] || '';
+          if (features && typeof features === 'string') {
+            if (!features.includes('noopener')) args[2] = features + ',noopener';
+            if (!features.includes('noreferrer')) args[2] = features + ',noreferrer';
+          } else {
+            args[2] = 'noopener,noreferrer';
+          }
+        }
+        return originalOpen.apply(this, args);
+      };
+    },
+
+    /**
+     * Mark all external links in the document with rel="noopener noreferrer"
+     * to prevent tabnapping via user-clicked links.
+     */
+    secureExternalLinks() {
+      const links = document.querySelectorAll('a[target="_blank"]');
+      links.forEach(link => {
+        const href = link.getAttribute('href') || '';
+        if (href && !href.startsWith(window.location.origin) && !href.startsWith('#')) {
+          const rel = (link.getAttribute('rel') || '').split(/\s+/);
+          if (!rel.includes('noopener')) rel.push('noopener');
+          if (!rel.includes('noreferrer')) rel.push('noreferrer');
+          link.setAttribute('rel', rel.join(' ').trim());
+        }
+      });
+    },
+
+    // ─── ROGUE ADDON / EXTENSION DETECTION ───────────────────────────────────
+
+    /**
+     * Detect potentially malicious browser extensions by checking for
+     * known extension DOM modifications, injected scripts, and
+     * unexpected global variables.
+     * @returns {Object} Detection results with findings array
+     */
+    detectRogueExtensions() {
+      const findings = [];
+
+      // Check for known ad-injection patterns
+      const suspiciousSelectors = [
+        '[id*="adsense"]',
+        '[id*="adblock"]',
+        '[class*="adsby"]',
+        '[id*="sponsored"][style]',
+        'iframe[src*="ads"]'
+      ];
+
+      suspiciousSelectors.forEach(selector => {
+        const elements = document.querySelectorAll(selector);
+        if (elements.length > 0) {
+          findings.push({
+            type: 'suspicious_element',
+            selector,
+            count: elements.length,
+            severity: 'medium'
+          });
+        }
+      });
+
+      // Check for injected scripts from unknown sources
+      const scripts = document.querySelectorAll("script[src]");
+      const trustedOrigins = [window.location.origin, 'https://fonts.googleapis.com', 'https://fonts.gstatic.com'];
+      scripts.forEach(script => {
+        const src = script.getAttribute('src') || '';
+        if (src && !trustedOrigins.some(origin => src.startsWith(origin)) && !src.startsWith('/')) {
+          findings.push({
+            type: 'external_script',
+            src: src.substring(0, 100),
+            severity: 'high'
+          });
+        }
+      });
+
+      // Check for unexpected global variables that extensions commonly inject
+      const suspiciousGlobals = ['__firefox__', 'chrome', 'safari', '_phantom', 'callPhantom', '__nightmare', '_selenium', 'callSelenium', 'domAutomation', 'domAutomationController', '__webdriver_script_fn', '__driver_evaluate', '__webdriver_evaluate', '__selenium_evaluate', '__fxdriver_evaluate', '__driver_unwrapped', '__webdriver_unwrapped', '__selenium_unwrapped', '__fxdriver_unwrapped'];
+      const detectedGlobals = [];
+      suspiciousGlobals.forEach(name => {
+        try {
+          if (name in window) {
+            detectedGlobals.push(name);
+          }
+        } catch (e) {
+          // Some properties throw on access
+        }
+      });
+
+      if (detectedGlobals.length > 0) {
+        findings.push({
+          type: 'suspicious_globals',
+          globals: detectedGlobals,
+          severity: 'medium'
+        });
+      }
+
+      // Check for DOM elements that shouldn't exist (extension UI overlays)
+      const bodyHTML = document.body ? document.body.innerHTML : '';
+      const suspiciousPatterns = [
+        { pattern: /data-ad-format/, name: 'ad-injection' },
+        { pattern: /extension-installed/, name: 'extension-marker' }
+      ];
+
+      suspiciousPatterns.forEach(({ pattern, name }) => {
+        if (pattern.test(bodyHTML)) {
+          findings.push({
+            type: 'suspicious_pattern',
+            name,
+            severity: 'low'
+          });
+        }
+      });
+
+      return {
+        detected: findings.length > 0,
+        findings,
+        riskLevel: findings.some(f => f.severity === 'high') ? 'high' :
+                   findings.some(f => f.severity === 'medium') ? 'medium' : 'low'
+      };
+    },
+
+    // ─── SECURITY HEADERS RECOMMENDATION ─────────────────────────────────────
+
+    /**
+     * Generate a complete set of recommended security headers.
+     * These should be configured on the server side.
+     * @returns {Object} Map of header name to recommended value
+     */
+    getRecommendedHeaders() {
+      return {
+        'X-Content-Type-Options': 'nosniff',
+        'X-Frame-Options': 'DENY',
+        'X-XSS-Protection': '1; mode=block',
+        'Referrer-Policy': 'strict-origin-when-cross-origin',
+        'Permissions-Policy': 'camera=(), microphone=(), geolocation=(), payment=()',
+        'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
+        'Content-Security-Policy': this.generateCSP()
+      };
+    },
+
+    /**
+     * Inject security-related meta tags that can be set client-side.
+     */
+    injectSecurityMetas() {
+      // X-UA-Compatible for IE
+      if (!document.querySelector('meta[http-equiv="X-UA-Compatible"]')) {
+        const meta = document.createElement('meta');
+        meta.httpEquiv = 'X-UA-Compatible';
+        meta.content = 'IE=edge';
+        document.head.appendChild(meta);
+      }
+
+      // Referrer policy
+      if (!document.querySelector('meta[name="referrer"]')) {
+        const meta = document.createElement('meta');
+        meta.name = 'referrer';
+        meta.content = 'strict-origin-when-cross-origin';
+        document.head.appendChild(meta);
+      }
+
+      // Permissions policy (limited browser support via meta)
+      if (!document.querySelector('meta[http-equiv="Permissions-Policy"]')) {
+        const meta = document.createElement('meta');
+        meta.httpEquiv = 'Permissions-Policy';
+        meta.content = 'camera=(), microphone=(), geolocation=(), payment=()';
+        document.head.appendChild(meta);
+      }
+    },
+
+    // ─── MASTER INITIALIZATION ───────────────────────────────────────────────
+
+    /**
+     * Initialize all client-side security protections.
+     * @param {Object} options - Configuration options
+     * @param {boolean} options.enableBehavioralTracking - Enable bot detection (default: true)
+     * @param {boolean} options.enableFrameBusting - Enable clickjacking protection (default: true)
+     * @param {boolean} options.enableTabnappingProtection - Enable tabnapping protection (default: true)
+     * @param {boolean} options.enableExtensionDetection - Enable rogue extension detection (default: true)
+     * @param {boolean} options.enableCSP - Inject CSP meta tag (default: true)
+     * @param {boolean} options.enableSecurityMetas - Inject security meta tags (default: true)
+     */
+    init(options = {}) {
+      if (this._initialized) return;
+      this._initialized = true;
+
+      const config = {
+        enableBehavioralTracking: true,
+        enableFrameBusting: true,
+        enableTabnappingProtection: true,
+        enableExtensionDetection: true,
+        enableCSP: true,
+        enableSecurityMetas: true,
+        ...options
+      };
+
+      if (config.enableBehavioralTracking) {
+        this.initBehavioralTracking();
+      }
+
+      if (config.enableFrameBusting) {
+        this.injectFrameBuster();
+      }
+
+      if (config.enableTabnappingProtection) {
+        this.protectAgainstTabnapping();
+        this.secureExternalLinks();
+      }
+
+      if (config.enableCSP) {
+        this.injectCSPMeta();
+      }
+
+      if (config.enableSecurityMetas) {
+        this.injectSecurityMetas();
+      }
+
+      if (config.enableExtensionDetection) {
+        // Run detection after DOM is ready
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', () => {
+            this.detectRogueExtensions();
+          });
+        } else {
+          this.detectRogueExtensions();
+        }
+      }
+    }
+  };
+
+  // ═══════════════════════════════════════════════════════════════════════════════
   // IMAGE PUZZLE CONFIGURATION
   // ═══════════════════════════════════════════════════════════════════════════════
 
