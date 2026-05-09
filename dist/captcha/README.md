@@ -794,8 +794,6 @@ hooks.on('onServerRejected', (data) => {
 
 Contributions are welcome! Please read our [Contributing Guide](CONTRIBUTING.md) for details.
 
-VaultGuard™ is designed to be fully compliant with GDPR Article 25 (Data protection by design and by default) as it processes zero PII (Personally Identifiable Information) on external infrastructure.
-
 ## 📧 Contact
 
 - **GitHub**: https://github.com/everythingtt/Utilities

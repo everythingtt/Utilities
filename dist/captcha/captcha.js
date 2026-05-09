@@ -443,7 +443,6 @@
         'img-src': ["'self'", 'https://loremflickr.com', 'https://upload.wikimedia.org', 'data:'],
         'font-src': ["'self'", 'https://fonts.gstatic.com'],
         'connect-src': ["'self'"],
-        'frame-ancestors': ["'none'"],
         'form-action': ["'self'"],
         'base-uri': ["'self'"]
       };
@@ -1290,10 +1289,11 @@
 
     /**
      * Audio CAPTCHA — Web Audio API synthesizer
-     * Generates noise-masked rhythmic tones or digit sequences entirely client-side.
+     * Generates noise-masked DTMF-like tones entirely client-side.
      * No audio files, no external requests, no PII transmitted.
-     * Uses oscillator nodes, noise buffers, and gain envelopes.
-     * @returns {Object} Challenge with question, audio buffer, and answer
+     * Renders audio samples directly into a Float32Array, then plays
+     * via AudioBuffer — avoids OfflineAudioContext compatibility issues.
+     * @returns {Object} Challenge with question, sample rate, and answer
      */
     audio() {
       const digitCount = 4;
@@ -1308,8 +1308,8 @@
       const gapDuration = 0.25;
       const noiseLevel = 0.18;
       const totalDuration = digitCount * digitDuration + (digitCount - 1) * gapDuration;
-      const bufferLength = Math.ceil(sampleRate * totalDuration);
-      const audioBuffer = new (window.OfflineAudioContext || window.webkitOfflineAudioContext)(1, bufferLength, sampleRate);
+      const totalSamples = Math.ceil(sampleRate * totalDuration);
+      const samples = new Float32Array(totalSamples);
 
       const digitFrequencies = {
         '0': [941, 1336], '1': [697, 1209], '2': [697, 1336], '3': [697, 1477],
@@ -1317,49 +1317,46 @@
         '8': [852, 1336], '9': [852, 1477]
       };
 
-      const noiseBuffer = audioBuffer.createBuffer(1, bufferLength, sampleRate);
-      const noiseData = noiseBuffer.getChannelData(0);
-      for (let i = 0; i < bufferLength; i++) {
-        noiseData[i] = (Math.random() * 2 - 1) * noiseLevel;
+      for (let i = 0; i < totalSamples; i++) {
+        samples[i] = (Math.random() * 2 - 1) * noiseLevel;
       }
 
       for (let d = 0; d < digitCount; d++) {
         const freqs = digitFrequencies[digits[d]];
         const startSample = Math.floor((d * (digitDuration + gapDuration)) * sampleRate);
         const endSample = startSample + Math.floor(digitDuration * sampleRate);
+        const rampSamples = Math.floor(0.02 * sampleRate);
 
-        for (let f = 0; f < freqs.length; f++) {
-          const osc = audioBuffer.createOscillator();
-          osc.type = 'sine';
-          osc.frequency.value = freqs[f];
+        for (let i = startSample; i < endSample && i < totalSamples; i++) {
+          const t = (i - startSample) / sampleRate;
+          let envelope = 0.35;
+          const sampleIndex = i - startSample;
+          const digitSamples = endSample - startSample;
 
-          const gainNode = audioBuffer.createGain();
-          const rampTime = 0.02;
-          gainNode.gain.setValueAtTime(0, audioBuffer.currentTime);
-          gainNode.gain.linearRampToValueAtTime(0.35, audioBuffer.currentTime + rampTime);
-          gainNode.gain.setValueAtTime(0.35, audioBuffer.currentTime + digitDuration - rampTime);
-          gainNode.gain.linearRampToValueAtTime(0, audioBuffer.currentTime + digitDuration);
+          if (sampleIndex < rampSamples) {
+            envelope *= sampleIndex / rampSamples;
+          } else if (sampleIndex > digitSamples - rampSamples) {
+            envelope *= (digitSamples - sampleIndex) / rampSamples;
+          }
 
-          osc.connect(gainNode);
-          gainNode.connect(audioBuffer.destination);
-          osc.start(audioBuffer.currentTime + d * (digitDuration + gapDuration));
-          osc.stop(audioBuffer.currentTime + d * (digitDuration + gapDuration) + digitDuration + 0.01);
+          let sample = 0;
+          for (let f = 0; f < freqs.length; f++) {
+            sample += Math.sin(2 * Math.PI * freqs[f] * t);
+          }
+          sample *= envelope / freqs.length;
+          samples[i] += sample;
         }
       }
 
-      const noiseSource = audioBuffer.createBufferSource();
-      noiseSource.buffer = noiseBuffer;
-      const noiseGain = audioBuffer.createGain();
-      noiseGain.gain.value = 1;
-      noiseSource.connect(noiseGain);
-      noiseGain.connect(audioBuffer.destination);
-      noiseSource.start();
+      for (let i = 0; i < totalSamples; i++) {
+        samples[i] = Math.max(-1, Math.min(1, samples[i]));
+      }
 
       return {
         question: `Type the ${digitCount} digits you hear`,
         answer: answer,
-        audioBuffer: audioBuffer,
-        audioData: null
+        audioSamples: samples,
+        audioSampleRate: sampleRate
       };
     },
 
@@ -1646,7 +1643,14 @@
         question: challenge.question,
         type: challengeType,
         expiresIn: this.options.expiryTime,
-        images: challenge.images || null
+        images: challenge.images || null,
+        canvas: challenge.canvas || null,
+        audioSamples: challenge.audioSamples || null,
+        audioSampleRate: challenge.audioSampleRate || null,
+        pathPoints: challenge.pathPoints || null,
+        tolerance: challenge.tolerance || null,
+        minTracePoints: challenge.minTracePoints || null,
+        pathType: challenge.pathType || null
       };
 
       this._emitHook('onChallengeGenerated', {
@@ -2748,24 +2752,33 @@
         }
       };
 
-      const playAudioChallenge = async (challenge) => {
+      const playAudioChallenge = (challenge) => {
         stopAudio();
+
+        if (!window.AudioContext && !window.webkitAudioContext) {
+          showMessage('Audio is not supported in this browser', 'error');
+          return;
+        }
+
         if (!audioContext) {
           audioContext = new (window.AudioContext || window.webkitAudioContext)();
         }
         if (audioContext.state === 'suspended') {
-          await audioContext.resume();
+          audioContext.resume();
         }
 
         try {
-          const renderedBuffer = await challenge.audioBuffer.startRendering();
-          const source = audioContext.createBufferSource();
-          source.buffer = renderedBuffer;
+          const ctx = audioContext;
+          const buffer = ctx.createBuffer(1, challenge.audioSamples.length, challenge.audioSampleRate);
+          buffer.getChannelData(0).set(challenge.audioSamples);
 
-          const analyser = audioContext.createAnalyser();
+          const source = ctx.createBufferSource();
+          source.buffer = buffer;
+
+          const analyser = ctx.createAnalyser();
           analyser.fftSize = 64;
           source.connect(analyser);
-          analyser.connect(audioContext.destination);
+          analyser.connect(ctx.destination);
           audioSourceNode = source;
 
           if (audioVisualizer) {
@@ -2800,10 +2813,15 @@
           source.start();
         } catch (e) {
           console.error('VaultGuard audio playback error:', e);
+          showMessage('Audio playback failed. Please try again.', 'error');
         }
       };
 
       const setupPathChallenge = (challenge) => {
+        if (!pathCanvasContainer || !challenge.canvas || !(challenge.canvas instanceof HTMLElement)) {
+          console.error('VaultGuard path challenge setup error: missing container or canvas');
+          return;
+        }
         pathCanvasContainer.innerHTML = '';
         const canvas = challenge.canvas;
         pathCanvas = canvas;
@@ -2925,19 +2943,23 @@
               break;
 
             case 'textIllusion':
-              illusionChallengeEl.style.display = 'block';
-              illusionCanvasContainer.innerHTML = '';
-              if (currentChallenge.canvas) {
-                illusionCanvasContainer.appendChild(currentChallenge.canvas);
+              if (illusionChallengeEl) illusionChallengeEl.style.display = 'block';
+              if (illusionCanvasContainer) {
+                illusionCanvasContainer.innerHTML = '';
+                if (currentChallenge.canvas instanceof HTMLElement) {
+                  illusionCanvasContainer.appendChild(currentChallenge.canvas);
+                }
               }
-              illusionInput.value = '';
-              buttonEl.disabled = false;
-              setTimeout(() => illusionInput.focus(), 100);
+              if (illusionInput) {
+                illusionInput.value = '';
+                buttonEl.disabled = false;
+                setTimeout(() => illusionInput.focus(), 100);
+              }
               break;
 
             case 'audio':
-              audioChallengeEl.style.display = 'block';
-              audioInput.value = '';
+              if (audioChallengeEl) audioChallengeEl.style.display = 'block';
+              if (audioInput) audioInput.value = '';
               if (audioReplayBtn) audioReplayBtn.style.display = 'none';
               if (audioVisualizer) audioVisualizer.innerHTML = '';
               buttonEl.disabled = false;
@@ -2947,7 +2969,7 @@
               break;
 
             case 'visualPath':
-              pathChallengeEl.style.display = 'block';
+              if (pathChallengeEl) pathChallengeEl.style.display = 'block';
               setupPathChallenge(currentChallenge);
               if (verifyButtonEl) verifyButtonEl.disabled = false;
               break;
