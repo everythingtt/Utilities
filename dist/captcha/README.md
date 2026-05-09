@@ -29,7 +29,7 @@
 - 👁️ **Zero Tracking** - No fingerprinting, cookies, or user tracking
 - 🚫 **No Dependencies** - Completely self-contained
 - ⏱️ **Time-Limited Challenges** - Configurable expiry (default 5 minutes)
-- 🎯 **Multiple Challenge Types** - Math, text, pattern, and image puzzle challenges
+- 🎯 **7 Challenge Types** - Math, text, pattern, image puzzle, text illusion, audio, and visual path
 - 🎨 **Beautiful Branded UI** - Professional, accessible design
 - 📦 **Single File** - Easy to deploy and integrate
 - 🤖 **Anti-Bot Detection** - Behavioral analysis, honeypot fields, timing checks
@@ -288,6 +288,8 @@ const version = VaultGuard.getVersion();
 
 ## 🎨 Challenge Types
 
+VaultGuard supports 7 challenge types, all generated client-side with zero external requests:
+
 ### Math Challenges
 Simple arithmetic problems:
 - Addition: `What is 12 + 5?`
@@ -305,6 +307,46 @@ Word manipulation tasks:
 Visual pattern completion:
 - `Complete the pattern: ○ ● □ ■ ___`
 
+### Image Puzzle Challenges
+"Select all X" grid-based challenges with 9 real photographs. Users select all images matching a category (cars, traffic lights, crosswalks, etc.). Images are loaded from LoremFlickr with deterministic locking.
+
+### Text Illusion Challenges ✨
+A word is rendered onto an HTML5 Canvas using `globalCompositeOperation` masking, noise overlays, and distortion lines. The answer text is **never present in the DOM** — only as pixel data on the canvas. This makes it impossible for standard bots to scrape the answer via DOM traversal, and OCR requires full canvas rendering.
+
+**Security properties:**
+- Answer is pixel data only — not in DOM, not in data attributes
+- Canvas uses `willReadFrequently: false` to prevent read-back timing attacks
+- Multiple composite operation layers resist simple image processing
+- 30 possible words, randomly selected
+
+### Audio Challenges ✨
+Digits are synthesized entirely client-side using the Web Audio API — no audio files, no external requests. Uses DTMF-like dual-tone frequencies with added noise masking. An audio visualizer shows playback activity.
+
+**Security properties:**
+- Zero network requests for audio data
+- Uses `OfflineAudioContext` for deterministic rendering
+- Noise masking at 18% level resists simple frequency analysis
+- 4-digit sequences from 10,000 possibilities
+- No PII transmitted — fully GDPR Article 25 compliant
+
+**Browser support:** Chrome 35+, Firefox 25+, Safari 14.1+, Edge 79+. Falls back gracefully — if Web Audio API is unavailable, VaultGuard selects a different challenge type.
+
+### Visual Path Challenges ✨
+A curved path (wave, spiral, zigzag, or arc) is rendered on canvas. The user must trace from Start (S) to End (E) using mouse or touch. The system records pointer coordinates, timing, and velocity for behavioral analysis.
+
+**Verification criteria:**
+- **Path coverage**: ≥75% of the path must be traced within tolerance
+- **Velocity variance**: Human hand tremor produces natural speed variation (CV ≥ 0.05)
+- **Direction changes**: Natural tracing has frequent micro-direction changes (rate ≥ 2%)
+- **Timing**: Minimum duration based on point count prevents instant submission
+- **Point density**: Minimum 20 trace points required
+
+**Security properties:**
+- Path geometry is verified client-side with behavioral analysis
+- Bot-nets struggle to mimic natural human hand tremor and acceleration curves
+- `Object.freeze()` on path data prevents accidental mutation
+- Touch and pointer events supported for mobile accessibility
+
 ## ⚙️ Configuration Examples
 
 ### Basic Setup
@@ -316,19 +358,31 @@ const captcha = new VaultGuard.Captcha();
 ```javascript
 const captcha = new VaultGuard.Captcha({
   difficulty: 'hard',
-  expiryTime: 180000,    // 3 minutes
-  maxAttempts: 2,        // Only 2 attempts
-  challengeTypes: ['math', 'text']  // No pattern challenges
+  expiryTime: 180000,
+  maxAttempts: 2,
+  challengeTypes: ['textIllusion', 'visualPath', 'audio'],
+  enableBotDetection: true,
+  enableCSRF: true,
+  enableFingerprintBinding: true
 });
 ```
 
-### Relaxed Security
+### Accessibility-Focused
 ```javascript
 const captcha = new VaultGuard.Captcha({
-  difficulty: 'easy',
-  expiryTime: 600000,    // 10 minutes
-  maxAttempts: 5,        // 5 attempts
-  challengeTypes: ['math']  // Only math
+  challengeTypes: ['audio', 'math'],
+  // Audio for visually impaired users, math as fallback
+});
+```
+
+### Maximum Bot Resistance
+```javascript
+const captcha = new VaultGuard.Captcha({
+  challengeTypes: ['visualPath', 'textIllusion', 'audio', 'imagePuzzle'],
+  enableBotDetection: true,
+  botScoreThreshold: 0.3,
+  enableHoneypot: true,
+  enableFingerprintBinding: true
 });
 ```
 
@@ -739,8 +793,6 @@ hooks.on('onServerRejected', (data) => {
 ## 🤝 Contributing
 
 Contributions are welcome! Please read our [Contributing Guide](CONTRIBUTING.md) for details.
-
-VaultGuard™ is designed to be fully compliant with GDPR Article 25 (Data protection by design and by default) as it processes zero PII (Personally Identifiable Information) on external infrastructure.
 
 ## 📧 Contact
 

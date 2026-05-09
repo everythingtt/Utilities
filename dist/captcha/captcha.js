@@ -1193,6 +1193,326 @@
         correctIndices: correctIndices,
         puzzleId: puzzle.id
       };
+    },
+
+    /**
+     * Text-based Illusion CAPTCHA
+     * Renders text onto a Canvas using globalCompositeOperation masking.
+     * The answer text is never present in the DOM — only as pixel data on canvas.
+     * Bots cannot scrape the answer via DOM traversal, OCR requires rendering the canvas.
+     * @returns {Object} Challenge with question, canvas element, and answer
+     */
+    textIllusion() {
+      const words = [
+        'shield', 'castle', 'bridge', 'garden', 'planet',
+        'rocket', 'forest', 'stream', 'temple', 'crystal',
+        'dragon', 'falcon', 'harbor', 'island', 'jungle',
+        'knight', 'lighthouse', 'meadow', 'nebula', 'ocean',
+        'phoenix', 'quartz', 'riddle', 'summit', 'thunder',
+        'umbra', 'voyage', 'willow', 'xenon', 'zenith'
+      ];
+      const answer = words[CryptoUtils.randomInt(0, words.length - 1)];
+
+      const canvas = document.createElement('canvas');
+      canvas.width = 280;
+      canvas.height = 80;
+      const ctx = canvas.getContext('2d', { willReadFrequently: false });
+
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(0, 0, 280, 80);
+
+      const noiseCount = 120;
+      for (let i = 0; i < noiseCount; i++) {
+        ctx.fillStyle = `rgba(${CryptoUtils.randomInt(30, 80)}, ${CryptoUtils.randomInt(30, 80)}, ${CryptoUtils.randomInt(40, 90)}, ${CryptoUtils.randomInt(30, 70) / 100})`;
+        ctx.beginPath();
+        ctx.arc(
+          CryptoUtils.randomInt(0, 280),
+          CryptoUtils.randomInt(0, 80),
+          CryptoUtils.randomInt(1, 4),
+          0, Math.PI * 2
+        );
+        ctx.fill();
+      }
+
+      for (let i = 0; i < 6; i++) {
+        ctx.strokeStyle = `rgba(${CryptoUtils.randomInt(40, 100)}, ${CryptoUtils.randomInt(40, 100)}, ${CryptoUtils.randomInt(50, 120)}, ${CryptoUtils.randomInt(20, 50) / 100})`;
+        ctx.lineWidth = CryptoUtils.randomInt(1, 3);
+        ctx.beginPath();
+        ctx.moveTo(CryptoUtils.randomInt(0, 280), CryptoUtils.randomInt(0, 80));
+        ctx.bezierCurveTo(
+          CryptoUtils.randomInt(0, 280), CryptoUtils.randomInt(0, 80),
+          CryptoUtils.randomInt(0, 280), CryptoUtils.randomInt(0, 80),
+          CryptoUtils.randomInt(0, 280), CryptoUtils.randomInt(0, 80)
+        );
+        ctx.stroke();
+      }
+
+      ctx.font = `bold ${CryptoUtils.randomInt(28, 36)}px "Courier New", monospace`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+
+      ctx.fillStyle = `rgba(${CryptoUtils.randomInt(180, 255)}, ${CryptoUtils.randomInt(180, 255)}, ${CryptoUtils.randomInt(180, 255)}, ${CryptoUtils.randomInt(85, 98) / 100})`;
+      const xOffset = CryptoUtils.randomInt(-5, 5);
+      const yOffset = CryptoUtils.randomInt(-3, 3);
+      ctx.fillText(answer.toUpperCase(), 140 + xOffset, 40 + yOffset);
+
+      ctx.globalCompositeOperation = 'source-atop';
+      for (let i = 0; i < 40; i++) {
+        ctx.strokeStyle = `rgba(${CryptoUtils.randomInt(20, 70)}, ${CryptoUtils.randomInt(20, 70)}, ${CryptoUtils.randomInt(30, 80)}, ${CryptoUtils.randomInt(15, 40) / 100})`;
+        ctx.lineWidth = CryptoUtils.randomInt(1, 2);
+        const ly = CryptoUtils.randomInt(0, 80);
+        ctx.beginPath();
+        ctx.moveTo(0, ly);
+        ctx.lineTo(280, ly + CryptoUtils.randomInt(-3, 3));
+        ctx.stroke();
+      }
+      ctx.globalCompositeOperation = 'source-over';
+
+      for (let i = 0; i < 30; i++) {
+        ctx.fillStyle = `rgba(${CryptoUtils.randomInt(100, 200)}, ${CryptoUtils.randomInt(100, 200)}, ${CryptoUtils.randomInt(120, 220)}, ${CryptoUtils.randomInt(10, 30) / 100})`;
+        ctx.fillRect(
+          CryptoUtils.randomInt(0, 275),
+          CryptoUtils.randomInt(0, 75),
+          CryptoUtils.randomInt(2, 8),
+          CryptoUtils.randomInt(1, 3)
+        );
+      }
+
+      canvas.className = 'vg-illusion-canvas';
+      canvas.style.cssText = 'border-radius:8px;border:1px solid rgba(255,255,255,0.12);width:100%;max-width:280px;display:block;';
+
+      return {
+        question: 'Type the hidden word you see in the image',
+        answer: answer,
+        canvas: canvas
+      };
+    },
+
+    /**
+     * Audio CAPTCHA — Web Audio API synthesizer
+     * Generates noise-masked rhythmic tones or digit sequences entirely client-side.
+     * No audio files, no external requests, no PII transmitted.
+     * Uses oscillator nodes, noise buffers, and gain envelopes.
+     * @returns {Object} Challenge with question, audio buffer, and answer
+     */
+    audio() {
+      const digitCount = 4;
+      const digits = [];
+      for (let i = 0; i < digitCount; i++) {
+        digits.push(CryptoUtils.randomInt(0, 9).toString());
+      }
+      const answer = digits.join('');
+
+      const sampleRate = 22050;
+      const digitDuration = 0.45;
+      const gapDuration = 0.25;
+      const noiseLevel = 0.18;
+      const totalDuration = digitCount * digitDuration + (digitCount - 1) * gapDuration;
+      const bufferLength = Math.ceil(sampleRate * totalDuration);
+      const audioBuffer = new (window.OfflineAudioContext || window.webkitOfflineAudioContext)(1, bufferLength, sampleRate);
+
+      const digitFrequencies = {
+        '0': [941, 1336], '1': [697, 1209], '2': [697, 1336], '3': [697, 1477],
+        '4': [770, 1209], '5': [770, 1336], '6': [770, 1477], '7': [852, 1209],
+        '8': [852, 1336], '9': [852, 1477]
+      };
+
+      const noiseBuffer = audioBuffer.createBuffer(1, bufferLength, sampleRate);
+      const noiseData = noiseBuffer.getChannelData(0);
+      for (let i = 0; i < bufferLength; i++) {
+        noiseData[i] = (Math.random() * 2 - 1) * noiseLevel;
+      }
+
+      for (let d = 0; d < digitCount; d++) {
+        const freqs = digitFrequencies[digits[d]];
+        const startSample = Math.floor((d * (digitDuration + gapDuration)) * sampleRate);
+        const endSample = startSample + Math.floor(digitDuration * sampleRate);
+
+        for (let f = 0; f < freqs.length; f++) {
+          const osc = audioBuffer.createOscillator();
+          osc.type = 'sine';
+          osc.frequency.value = freqs[f];
+
+          const gainNode = audioBuffer.createGain();
+          const rampTime = 0.02;
+          gainNode.gain.setValueAtTime(0, audioBuffer.currentTime);
+          gainNode.gain.linearRampToValueAtTime(0.35, audioBuffer.currentTime + rampTime);
+          gainNode.gain.setValueAtTime(0.35, audioBuffer.currentTime + digitDuration - rampTime);
+          gainNode.gain.linearRampToValueAtTime(0, audioBuffer.currentTime + digitDuration);
+
+          osc.connect(gainNode);
+          gainNode.connect(audioBuffer.destination);
+          osc.start(audioBuffer.currentTime + d * (digitDuration + gapDuration));
+          osc.stop(audioBuffer.currentTime + d * (digitDuration + gapDuration) + digitDuration + 0.01);
+        }
+      }
+
+      const noiseSource = audioBuffer.createBufferSource();
+      noiseSource.buffer = noiseBuffer;
+      const noiseGain = audioBuffer.createGain();
+      noiseGain.gain.value = 1;
+      noiseSource.connect(noiseGain);
+      noiseGain.connect(audioBuffer.destination);
+      noiseSource.start();
+
+      return {
+        question: `Type the ${digitCount} digits you hear`,
+        answer: answer,
+        audioBuffer: audioBuffer,
+        audioData: null
+      };
+    },
+
+    /**
+     * Visual Path-based CAPTCHA — "Trace the line"
+     * Renders a curved path on canvas. User must trace along it.
+     * Records pointer coordinates, timing, and velocity for human-jitter analysis.
+     * Bot-nets struggle to mimic natural human hand tremor and acceleration curves.
+     * @returns {Object} Challenge with question, canvas, path data, and tolerance config
+     */
+    visualPath() {
+      const canvasWidth = 300;
+      const canvasHeight = 200;
+
+      const pathTypes = ['wave', 'spiral', 'zigzag', 'arc'];
+      const pathType = pathTypes[CryptoUtils.randomInt(0, pathTypes.length - 1)];
+
+      const pathPoints = [];
+      const pointCount = 60;
+
+      switch (pathType) {
+        case 'wave': {
+          const amplitude = CryptoUtils.randomInt(30, 60);
+          const centerY = canvasHeight / 2;
+          const frequency = CryptoUtils.randomInt(2, 4) * Math.PI;
+          const phase = CryptoUtils.randomInt(0, 100) / 100 * Math.PI;
+          for (let i = 0; i < pointCount; i++) {
+            const t = i / (pointCount - 1);
+            const x = 30 + t * (canvasWidth - 60);
+            const y = centerY + amplitude * Math.sin(frequency * t + phase);
+            pathPoints.push({ x, y });
+          }
+          break;
+        }
+        case 'spiral': {
+          const cx = canvasWidth / 2 + CryptoUtils.randomInt(-20, 20);
+          const cy = canvasHeight / 2 + CryptoUtils.randomInt(-15, 15);
+          const maxRadius = Math.min(canvasWidth, canvasHeight) / 2 - 30;
+          const rotations = CryptoUtils.randomInt(2, 3);
+          for (let i = 0; i < pointCount; i++) {
+            const t = i / (pointCount - 1);
+            const angle = rotations * Math.PI * 2 * t;
+            const radius = maxRadius * (1 - t * 0.7);
+            pathPoints.push({
+              x: cx + radius * Math.cos(angle),
+              y: cy + radius * Math.sin(angle)
+            });
+          }
+          break;
+        }
+        case 'zigzag': {
+          const segments = CryptoUtils.randomInt(3, 5);
+          const segWidth = (canvasWidth - 60) / segments;
+          const amplitude = CryptoUtils.randomInt(25, 50);
+          for (let i = 0; i < pointCount; i++) {
+            const t = i / (pointCount - 1);
+            const x = 30 + t * (canvasWidth - 60);
+            const segIndex = t * segments;
+            const segT = segIndex - Math.floor(segIndex);
+            const direction = Math.floor(segIndex) % 2 === 0 ? 1 : -1;
+            const y = canvasHeight / 2 + direction * amplitude * (1 - Math.abs(segT * 2 - 1));
+            pathPoints.push({ x, y: y + CryptoUtils.randomInt(-5, 5) });
+          }
+          break;
+        }
+        case 'arc': {
+          const startAngle = CryptoUtils.randomInt(0, 90) * Math.PI / 180;
+          const sweepAngle = CryptoUtils.randomInt(120, 270) * Math.PI / 180;
+          const radius = Math.min(canvasWidth, canvasHeight) / 2 - 20;
+          const cx = canvasWidth / 2;
+          const cy = canvasHeight / 2 + 20;
+          for (let i = 0; i < pointCount; i++) {
+            const t = i / (pointCount - 1);
+            const angle = startAngle + sweepAngle * t;
+            pathPoints.push({
+              x: cx + radius * Math.cos(angle),
+              y: cy - radius * Math.sin(angle)
+            });
+          }
+          break;
+        }
+      }
+
+      const canvas = document.createElement('canvas');
+      canvas.width = canvasWidth;
+      canvas.height = canvasHeight;
+      canvas.className = 'vg-path-canvas';
+      canvas.style.cssText = 'border-radius:8px;border:1px solid rgba(255,255,255,0.12);width:100%;max-width:300px;display:block;cursor:crosshair;touch-action:none;';
+
+      const ctx = canvas.getContext('2d', { willReadFrequently: false });
+
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
+      for (let i = 0; i < 80; i++) {
+        ctx.fillStyle = `rgba(${CryptoUtils.randomInt(20, 60)}, ${CryptoUtils.randomInt(20, 60)}, ${CryptoUtils.randomInt(30, 70)}, ${CryptoUtils.randomInt(10, 30) / 100})`;
+        ctx.beginPath();
+        ctx.arc(
+          CryptoUtils.randomInt(0, canvasWidth),
+          CryptoUtils.randomInt(0, canvasHeight),
+          CryptoUtils.randomInt(0.5, 2.5),
+          0, Math.PI * 2
+        );
+        ctx.fill();
+      }
+
+      ctx.strokeStyle = '#00d4aa';
+      ctx.lineWidth = 3;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.shadowColor = 'rgba(0, 212, 170, 0.4)';
+      ctx.shadowBlur = 6;
+      ctx.beginPath();
+      ctx.moveTo(pathPoints[0].x, pathPoints[0].y);
+      for (let i = 1; i < pathPoints.length; i++) {
+        const prev = pathPoints[i - 1];
+        const curr = pathPoints[i];
+        const cpx = (prev.x + curr.x) / 2;
+        const cpy = (prev.y + curr.y) / 2;
+        ctx.quadraticCurveTo(prev.x, prev.y, cpx, cpy);
+      }
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+
+      ctx.fillStyle = '#00d4aa';
+      ctx.beginPath();
+      ctx.arc(pathPoints[0].x, pathPoints[0].y, 6, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#0f172a';
+      ctx.font = 'bold 10px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('S', pathPoints[0].x, pathPoints[0].y);
+
+      ctx.fillStyle = '#f59e0b';
+      ctx.beginPath();
+      ctx.arc(pathPoints[pathPoints.length - 1].x, pathPoints[pathPoints.length - 1].y, 6, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#0f172a';
+      ctx.fillText('E', pathPoints[pathPoints.length - 1].x, pathPoints[pathPoints.length - 1].y);
+
+      const tolerance = 25;
+      const minTracePoints = 20;
+
+      return {
+        question: 'Trace the line from Start (S) to End (E) with your mouse or finger',
+        answer: 'path',
+        canvas: canvas,
+        pathPoints: pathPoints,
+        tolerance: tolerance,
+        minTracePoints: minTracePoints,
+        pathType: pathType
+      };
     }
   };
 
@@ -1223,7 +1543,7 @@
         difficulty: options.difficulty || 'medium',
         expiryTime: options.expiryTime || 300000,
         maxAttempts: options.maxAttempts || 3,
-        challengeTypes: options.challengeTypes || ['math', 'text', 'pattern', 'imagePuzzle'],
+        challengeTypes: options.challengeTypes || ['math', 'text', 'pattern', 'imagePuzzle', 'textIllusion', 'audio', 'visualPath'],
         ...options
       };
 
@@ -1280,10 +1600,19 @@
       const challengeId = CryptoUtils.generateToken(16);
       const secret = CryptoUtils.generateToken(8);
       
-      const answerToHash = challengeType === 'imagePuzzle' 
-        ? challenge.correctIndices.join(',') 
-        : challenge.answer.toLowerCase();
-      
+      let answerToHash;
+      if (challengeType === 'imagePuzzle') {
+        answerToHash = challenge.correctIndices.join(',');
+      } else if (challengeType === 'visualPath') {
+        answerToHash = JSON.stringify({
+          pathPoints: challenge.pathPoints,
+          tolerance: challenge.tolerance,
+          minTracePoints: challenge.minTracePoints
+        });
+      } else {
+        answerToHash = challenge.answer.toLowerCase();
+      }
+
       const challengeData = {
         id: challengeId,
         question: challenge.question,
@@ -1297,9 +1626,13 @@
         solved: false,
         images: challenge.images || null,
         correctIndices: challenge.correctIndices || null,
-        puzzleId: challenge.puzzleId || null
+        puzzleId: challenge.puzzleId || null,
+        pathPoints: challenge.pathPoints || null,
+        tolerance: challenge.tolerance || null,
+        minTracePoints: challenge.minTracePoints || null
       };
 
+      Object.freeze(challengeData.pathPoints);
       this.challenges.set(challengeId, challengeData);
       this.attempts.set(challengeId, 0);
 
@@ -1447,11 +1780,17 @@
 
       this.attempts.set(challengeId, currentAttempts + 1);
 
-      const normalizedAnswer = challenge.type === 'imagePuzzle' 
-        ? userAnswer 
-        : userAnswer.toLowerCase();
-      const answerHash = await CryptoUtils.hash(normalizedAnswer + challenge.secret);
-      const isValid = answerHash === challenge.answerHash;
+      let isValid = false;
+
+      if (challenge.type === 'visualPath') {
+        isValid = this._verifyPathChallenge(challenge, userAnswer);
+      } else {
+        const normalizedAnswer = challenge.type === 'imagePuzzle'
+          ? userAnswer
+          : userAnswer.toLowerCase();
+        const answerHash = await CryptoUtils.hash(normalizedAnswer + challenge.secret);
+        isValid = answerHash === challenge.answerHash;
+      }
 
       if (isValid) {
         challenge.solved = true;
@@ -1464,13 +1803,109 @@
         };
       } else {
         const remainingAttempts = challenge.maxAttempts - (currentAttempts + 1);
-        this._emitHook('onError', { challengeId, error: 'Incorrect answer', remainingAttempts });
+        const errorMsg = challenge.type === 'visualPath'
+          ? 'Trace did not follow the path. Please try again.'
+          : 'Incorrect answer';
+        this._emitHook('onError', { challengeId, error: errorMsg, remainingAttempts });
         return {
           success: false,
-          error: 'Incorrect answer',
+          error: errorMsg,
           remainingAttempts: Math.max(0, remainingAttempts),
           brand: VAULTGUARD.name
         };
+      }
+    }
+
+    _verifyPathChallenge(challenge, traceData) {
+      try {
+        const data = typeof traceData === 'string' ? JSON.parse(traceData) : traceData;
+        const { points, startTime, endTime } = data;
+
+        if (!points || !Array.isArray(points) || points.length < (challenge.minTracePoints || 20)) {
+          return false;
+        }
+
+        const pathPoints = challenge.pathPoints;
+        if (!pathPoints || pathPoints.length === 0) {
+          return false;
+        }
+
+        const tolerance = challenge.tolerance || 25;
+        let matchedSegments = 0;
+        const totalSegments = pathPoints.length - 1;
+
+        for (let i = 0; i < points.length; i++) {
+          const px = points[i].x;
+          const py = points[i].y;
+
+          for (let j = 0; j < pathPoints.length - 1; j++) {
+            const ax = pathPoints[j].x;
+            const ay = pathPoints[j].y;
+            const bx = pathPoints[j + 1].x;
+            const by = pathPoints[j + 1].y;
+
+            const dx = bx - ax;
+            const dy = by - ay;
+            const lenSq = dx * dx + dy * dy;
+            if (lenSq === 0) continue;
+
+            let t = ((px - ax) * dx + (py - ay) * dy) / lenSq;
+            t = Math.max(0, Math.min(1, t));
+
+            const closestX = ax + t * dx;
+            const closestY = ay + t * dy;
+            const dist = Math.sqrt((px - closestX) ** 2 + (py - closestY) ** 2);
+
+            if (dist <= tolerance) {
+              matchedSegments = Math.max(matchedSegments, j + 1);
+              break;
+            }
+          }
+        }
+
+        const pathCoverage = matchedSegments / totalSegments;
+        if (pathCoverage < 0.75) return false;
+
+        if (points.length >= 3) {
+          const velocities = [];
+          for (let i = 1; i < points.length; i++) {
+            const dx = points[i].x - points[i - 1].x;
+            const dy = points[i].y - points[i - 1].y;
+            const dt = (points[i].t || i) - (points[i - 1].t || (i - 1));
+            if (dt > 0) {
+              velocities.push(Math.sqrt(dx * dx + dy * dy) / dt);
+            }
+          }
+
+          if (velocities.length > 2) {
+            const mean = velocities.reduce((a, b) => a + b, 0) / velocities.length;
+            const variance = velocities.reduce((a, b) => a + (b - mean) ** 2, 0) / velocities.length;
+            const cv = Math.sqrt(variance) / mean;
+
+            if (cv < 0.05) return false;
+          }
+
+          let directionChanges = 0;
+          for (let i = 2; i < points.length; i++) {
+            const dx1 = points[i - 1].x - points[i - 2].x;
+            const dy1 = points[i - 1].y - points[i - 2].y;
+            const dx2 = points[i].x - points[i - 1].x;
+            const dy2 = points[i].y - points[i - 1].y;
+            const cross = dx1 * dy2 - dy1 * dx2;
+            if (Math.abs(cross) > 0.5) directionChanges++;
+          }
+          const changeRate = directionChanges / points.length;
+          if (changeRate < 0.02) return false;
+        }
+
+        const duration = endTime - startTime;
+        const minDuration = points.length * 15;
+        if (duration < minDuration) return false;
+
+        return true;
+
+      } catch (e) {
+        return false;
       }
     }
 
@@ -1948,6 +2383,41 @@
           .vg-verify-button {
             margin-top: 8px;
           }
+
+          .vg-illusion-challenge,
+          .vg-audio-challenge,
+          .vg-path-challenge {
+            display: none;
+          }
+
+          .vg-illusion-canvas-container {
+            margin-bottom: 12px;
+          }
+
+          .vg-audio-controls {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+          }
+
+          .vg-audio-visualizer {
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            gap: 3px;
+            height: 32px;
+            margin-bottom: 12px;
+          }
+
+          .vg-path-canvas-container {
+            margin-bottom: 12px;
+          }
+
+          .vg-path-status {
+            font-size: 13px;
+            color: ${VAULTGUARD.brandColors.textMuted};
+            margin-bottom: 12px;
+          }
         </style>
         
         <!-- Header -->
@@ -2003,7 +2473,72 @@
                 Verify Selection
               </button>
             </div>
-            
+
+            <!-- Text Illusion Challenge -->
+            <div class="vg-illusion-challenge">
+              <div class="vg-illusion-canvas-container"></div>
+              <div class="vg-input-group">
+                <input type="text" class="vg-input vg-illusion-input" placeholder="Type the word you see" required autocomplete="off">
+              </div>
+              <button type="submit" class="vg-button">
+                <svg class="vg-button-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 2L3 7V12C3 17.5 6.8 22.9 12 24C17.2 22.9 21 17.5 21 12V7L12 2Z"/>
+                  <path d="M8.5 12L11 14.5L15.5 9.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                Verify Identity
+              </button>
+            </div>
+
+            <!-- Audio Challenge -->
+            <div class="vg-audio-challenge">
+              <div class="vg-audio-controls">
+                <button type="button" class="vg-button vg-audio-play-btn">
+                  <svg class="vg-button-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polygon points="5 3 19 12 5 21 5 3"/>
+                  </svg>
+                  Play Audio
+                </button>
+                <button type="button" class="vg-button vg-audio-replay-btn" style="display:none;">
+                  <svg class="vg-button-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M1 4V10H7"/>
+                    <path d="M3.51 15A9 9 0 1 0 2.13 10.9L1 10"/>
+                  </svg>
+                  Replay
+                </button>
+              </div>
+              <div class="vg-audio-visualizer"></div>
+              <div class="vg-input-group">
+                <input type="text" class="vg-input vg-audio-input" placeholder="Type the digits you hear" required autocomplete="off" inputmode="numeric" pattern="[0-9]*">
+              </div>
+              <button type="submit" class="vg-button">
+                <svg class="vg-button-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 2L3 7V12C3 17.5 6.8 22.9 12 24C17.2 22.9 21 17.5 21 12V7L12 2Z"/>
+                  <path d="M8.5 12L11 14.5L15.5 9.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                Verify Identity
+              </button>
+            </div>
+
+            <!-- Visual Path Challenge -->
+            <div class="vg-path-challenge">
+              <div class="vg-path-canvas-container"></div>
+              <div class="vg-path-status">Trace the line from <strong>S</strong> to <strong>E</strong></div>
+              <button type="button" class="vg-button vg-path-reset-btn">
+                <svg class="vg-button-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M1 4V10H7"/>
+                  <path d="M3.51 15A9 9 0 1 0 2.13 10.9L1 10"/>
+                </svg>
+                Reset Trace
+              </button>
+              <button type="button" class="vg-button vg-verify-button">
+                <svg class="vg-button-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 2L3 7V12C3 17.5 6.8 22.9 12 24C17.2 22.9 21 17.5 21 12V7L12 2Z"/>
+                  <path d="M8.5 12L11 14.5L15.5 9.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                Verify Trace
+              </button>
+            </div>
+
             <div class="vg-attempts">
               <div class="vg-attempt-dot remaining"></div>
               <div class="vg-attempt-dot remaining"></div>
@@ -2177,6 +2712,193 @@
         });
       };
 
+      const illusionChallengeEl = formElement.querySelector('.vg-illusion-challenge');
+      const illusionCanvasContainer = formElement.querySelector('.vg-illusion-canvas-container');
+      const illusionInput = formElement.querySelector('.vg-illusion-input');
+      const audioChallengeEl = formElement.querySelector('.vg-audio-challenge');
+      const audioPlayBtn = formElement.querySelector('.vg-audio-play-btn');
+      const audioReplayBtn = formElement.querySelector('.vg-audio-replay-btn');
+      const audioVisualizer = formElement.querySelector('.vg-audio-visualizer');
+      const audioInput = formElement.querySelector('.vg-audio-input');
+      const pathChallengeEl = formElement.querySelector('.vg-path-challenge');
+      const pathCanvasContainer = formElement.querySelector('.vg-path-canvas-container');
+      const pathStatus = formElement.querySelector('.vg-path-status');
+      const pathResetBtn = formElement.querySelector('.vg-path-reset-btn');
+
+      let audioContext = null;
+      let audioSourceNode = null;
+      let isTracing = false;
+      let tracePoints = [];
+      let pathCanvas = null;
+      let pathCtx = null;
+      let pathAnswerData = null;
+
+      const hideAllChallengeTypes = () => {
+        textChallengeEl.style.display = 'none';
+        imagePuzzleEl.style.display = 'none';
+        if (illusionChallengeEl) illusionChallengeEl.style.display = 'none';
+        if (audioChallengeEl) audioChallengeEl.style.display = 'none';
+        if (pathChallengeEl) pathChallengeEl.style.display = 'none';
+      };
+
+      const stopAudio = () => {
+        if (audioSourceNode) {
+          try { audioSourceNode.stop(); } catch (e) {}
+          audioSourceNode = null;
+        }
+      };
+
+      const playAudioChallenge = async (challenge) => {
+        stopAudio();
+        if (!audioContext) {
+          audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (audioContext.state === 'suspended') {
+          await audioContext.resume();
+        }
+
+        try {
+          const renderedBuffer = await challenge.audioBuffer.startRendering();
+          const source = audioContext.createBufferSource();
+          source.buffer = renderedBuffer;
+
+          const analyser = audioContext.createAnalyser();
+          analyser.fftSize = 64;
+          source.connect(analyser);
+          analyser.connect(audioContext.destination);
+          audioSourceNode = source;
+
+          if (audioVisualizer) {
+            audioVisualizer.innerHTML = '';
+            const barCount = 16;
+            const bars = [];
+            for (let i = 0; i < barCount; i++) {
+              const bar = document.createElement('div');
+              bar.style.cssText = 'width:4px;min-height:2px;background:#00d4aa;border-radius:2px;transition:height 0.05s;';
+              audioVisualizer.appendChild(bar);
+              bars.push(bar);
+            }
+            const dataArray = new Uint8Array(analyser.frequencyBinCount);
+            const animate = () => {
+              if (!audioSourceNode) return;
+              analyser.getByteFrequencyData(dataArray);
+              for (let i = 0; i < barCount; i++) {
+                const val = dataArray[i] || 0;
+                bars[i].style.height = Math.max(2, val / 4) + 'px';
+              }
+              requestAnimationFrame(animate);
+            };
+            animate();
+          }
+
+          source.onended = () => {
+            audioSourceNode = null;
+            if (audioVisualizer) audioVisualizer.innerHTML = '';
+            if (audioReplayBtn) audioReplayBtn.style.display = '';
+          };
+
+          source.start();
+        } catch (e) {
+          console.error('VaultGuard audio playback error:', e);
+        }
+      };
+
+      const setupPathChallenge = (challenge) => {
+        pathCanvasContainer.innerHTML = '';
+        const canvas = challenge.canvas;
+        pathCanvas = canvas;
+        pathCanvasContainer.appendChild(canvas);
+        pathCtx = canvas.getContext('2d', { willReadFrequently: false });
+        tracePoints = [];
+        pathAnswerData = { points: [], startTime: null, endTime: null };
+        isTracing = false;
+
+        const startTrace = (e) => {
+          e.preventDefault();
+          isTracing = true;
+          tracePoints = [];
+          pathAnswerData.startTime = Date.now();
+          pathAnswerData.points = [];
+          const pt = getCanvasPoint(e);
+          tracePoints.push(pt);
+          pathAnswerData.points.push({ x: pt.x, y: pt.y, t: 0 });
+          drawTrace();
+          if (pathStatus) pathStatus.textContent = 'Tracing...';
+        };
+
+        const moveTrace = (e) => {
+          e.preventDefault();
+          if (!isTracing) return;
+          const pt = getCanvasPoint(e);
+          tracePoints.push(pt);
+          pathAnswerData.points.push({ x: pt.x, y: pt.y, t: Date.now() - pathAnswerData.startTime });
+          drawTrace();
+        };
+
+        const endTrace = (e) => {
+          e.preventDefault();
+          if (!isTracing) return;
+          isTracing = false;
+          pathAnswerData.endTime = Date.now();
+          drawTrace();
+          if (pathStatus) {
+            const count = pathAnswerData.points.length;
+            pathStatus.innerHTML = `Trace recorded (${count} points). <strong>Verify</strong> or <strong>Reset</strong>.`;
+          }
+        };
+
+        const getCanvasPoint = (e) => {
+          const rect = canvas.getBoundingClientRect();
+          const scaleX = canvas.width / rect.width;
+          const scaleY = canvas.height / rect.height;
+          const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+          const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+          return {
+            x: (clientX - rect.left) * scaleX,
+            y: (clientY - rect.top) * scaleY
+          };
+        };
+
+        const drawTrace = () => {
+          if (!pathCtx) return;
+          pathCtx.clearRect(0, 0, canvas.width, canvas.height);
+          pathCtx.strokeStyle = '#00d4aa';
+          pathCtx.lineWidth = 3;
+          pathCtx.lineCap = 'round';
+          pathCtx.lineJoin = 'round';
+          pathCtx.shadowColor = 'rgba(0, 212, 170, 0.5)';
+          pathCtx.shadowBlur = 8;
+
+          if (tracePoints.length > 1) {
+            pathCtx.beginPath();
+            pathCtx.moveTo(tracePoints[0].x, tracePoints[0].y);
+            for (let i = 1; i < tracePoints.length; i++) {
+              pathCtx.lineTo(tracePoints[i].x, tracePoints[i].y);
+            }
+            pathCtx.stroke();
+          }
+          pathCtx.shadowBlur = 0;
+        };
+
+        canvas.addEventListener('mousedown', startTrace);
+        canvas.addEventListener('mousemove', moveTrace);
+        canvas.addEventListener('mouseup', endTrace);
+        canvas.addEventListener('mouseleave', endTrace);
+        canvas.addEventListener('touchstart', startTrace, { passive: false });
+        canvas.addEventListener('touchmove', moveTrace, { passive: false });
+        canvas.addEventListener('touchend', endTrace, { passive: false });
+
+        if (pathResetBtn) {
+          pathResetBtn.onclick = () => {
+            tracePoints = [];
+            pathAnswerData = { points: [], startTime: null, endTime: null };
+            isTracing = false;
+            if (pathCtx) pathCtx.clearRect(0, 0, canvas.width, canvas.height);
+            if (pathStatus) pathStatus.innerHTML = 'Trace the line from <strong>S</strong> to <strong>E</strong>';
+          };
+        }
+      };
+
       const loadChallenge = async () => {
         loadingEl.style.display = 'block';
         challengeAreaEl.style.display = 'none';
@@ -2187,23 +2909,56 @@
         attemptsUsed = 0;
         updateAttemptDots(0, 3);
         selectedImages = [];
+        stopAudio();
 
         try {
           currentChallenge = await captchaInstance.generateChallenge();
           questionEl.textContent = currentChallenge.question;
-          
-          if (currentChallenge.type === 'imagePuzzle' && currentChallenge.images) {
-            textChallengeEl.style.display = 'none';
-            imagePuzzleEl.style.display = 'block';
-            renderImageGrid(currentChallenge.images);
-            if (verifyButtonEl) verifyButtonEl.disabled = false;
-          } else {
-            textChallengeEl.style.display = 'block';
-            imagePuzzleEl.style.display = 'none';
-            buttonEl.disabled = false;
-            inputEl.focus();
+
+          hideAllChallengeTypes();
+
+          switch (currentChallenge.type) {
+            case 'imagePuzzle':
+              imagePuzzleEl.style.display = 'block';
+              renderImageGrid(currentChallenge.images);
+              if (verifyButtonEl) verifyButtonEl.disabled = false;
+              break;
+
+            case 'textIllusion':
+              illusionChallengeEl.style.display = 'block';
+              illusionCanvasContainer.innerHTML = '';
+              if (currentChallenge.canvas) {
+                illusionCanvasContainer.appendChild(currentChallenge.canvas);
+              }
+              illusionInput.value = '';
+              buttonEl.disabled = false;
+              setTimeout(() => illusionInput.focus(), 100);
+              break;
+
+            case 'audio':
+              audioChallengeEl.style.display = 'block';
+              audioInput.value = '';
+              if (audioReplayBtn) audioReplayBtn.style.display = 'none';
+              if (audioVisualizer) audioVisualizer.innerHTML = '';
+              buttonEl.disabled = false;
+              if (audioPlayBtn) {
+                audioPlayBtn.onclick = () => playAudioChallenge(currentChallenge);
+              }
+              break;
+
+            case 'visualPath':
+              pathChallengeEl.style.display = 'block';
+              setupPathChallenge(currentChallenge);
+              if (verifyButtonEl) verifyButtonEl.disabled = false;
+              break;
+
+            default:
+              textChallengeEl.style.display = 'block';
+              buttonEl.disabled = false;
+              inputEl.focus();
+              break;
           }
-          
+
           loadingEl.style.display = 'none';
           challengeAreaEl.style.display = 'block';
 
@@ -2277,10 +3032,18 @@
 
       formElement.addEventListener('submit', async (e) => {
         e.preventDefault();
-        
-        if (!currentChallenge || currentChallenge.type === 'imagePuzzle') return;
+        if (!currentChallenge) return;
+        if (currentChallenge.type === 'imagePuzzle' || currentChallenge.type === 'visualPath') return;
 
-        const userAnswer = inputEl.value.trim();
+        let userAnswer = '';
+        if (currentChallenge.type === 'textIllusion') {
+          userAnswer = illusionInput ? illusionInput.value.trim() : '';
+        } else if (currentChallenge.type === 'audio') {
+          userAnswer = audioInput ? audioInput.value.trim() : '';
+        } else {
+          userAnswer = inputEl.value.trim();
+        }
+
         if (!userAnswer) {
           showMessage('Please enter an answer', 'error');
           return;
@@ -2291,15 +3054,27 @@
 
       if (verifyButtonEl) {
         verifyButtonEl.addEventListener('click', async () => {
-          if (!currentChallenge || currentChallenge.type !== 'imagePuzzle') return;
-          
-          if (selectedImages.length === 0) {
-            showMessage('Please select at least one image', 'error');
-            return;
-          }
+          if (!currentChallenge) return;
 
-          const sortedSelection = [...selectedImages].sort((a, b) => a - b);
-          await verifyAnswer(sortedSelection.join(','));
+          if (currentChallenge.type === 'imagePuzzle') {
+            if (selectedImages.length === 0) {
+              showMessage('Please select at least one image', 'error');
+              return;
+            }
+            const sortedSelection = [...selectedImages].sort((a, b) => a - b);
+            await verifyAnswer(sortedSelection.join(','));
+          } else if (currentChallenge.type === 'visualPath') {
+            if (!pathAnswerData || !pathAnswerData.points || pathAnswerData.points.length === 0) {
+              showMessage('Please trace the line first', 'error');
+              return;
+            }
+            if (!pathAnswerData.endTime) {
+              showMessage('Please complete your trace', 'error');
+              return;
+            }
+            const tracePayload = JSON.stringify(pathAnswerData);
+            await verifyAnswer(tracePayload);
+          }
         });
       }
 
