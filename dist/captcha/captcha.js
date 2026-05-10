@@ -1556,6 +1556,12 @@
 
       this._serverMode = !!this.options.serverUrl;
       this._serverToken = null;
+      this._demoMode = this.options.demoMode || false;
+      this._networkLog = [];
+
+      if (this._demoMode) {
+        console.info(`${VAULTGUARD.name}: Demo/debug mode enabled. Network inspection active.`);
+      }
 
       if (this._serverMode) {
         console.info(`${VAULTGUARD.name}: Server mode enabled. Challenges are generated and verified server-side.`);
@@ -1621,10 +1627,12 @@
           headers['X-VG-Session'] = this._serverToken;
         }
 
+        const challengeReqBody = { clientToken: this._serverToken };
         const response = await fetch(`${this.options.serverUrl}/challenge`, {
           method: 'POST',
           headers,
-          credentials: 'same-origin'
+          credentials: 'same-origin',
+          body: JSON.stringify(challengeReqBody)
         });
 
         if (!response.ok) {
@@ -1632,6 +1640,18 @@
         }
 
         const serverChallenge = await response.json();
+
+        if (this._demoMode) {
+          this._networkLog.push({
+            timestamp: Date.now(),
+            direction: 'inbound',
+            endpoint: '/challenge',
+            request: challengeReqBody,
+            response: serverChallenge,
+            status: response.status
+          });
+          this._renderNetworkPanel();
+        }
 
         const challengeData = {
           id: serverChallenge.id,
@@ -1689,7 +1709,136 @@
         return result;
       } catch (error) {
         console.error(`${VAULTGUARD.name}: Server challenge fetch failed, falling back to client mode:`, error);
+        if (this._demoMode) {
+          this._networkLog.push({
+            timestamp: Date.now(),
+            direction: 'error',
+            endpoint: '/challenge',
+            request: challengeReqBody,
+            response: { error: error.message },
+            status: 0
+          });
+          this._renderNetworkPanel();
+        }
         return this._generateClientChallenge();
+      }
+    }
+
+    _renderNetworkPanel() {
+      if (!this._demoMode) return;
+
+      let panel = document.getElementById('vg-network-panel');
+      if (!panel) {
+        panel = document.createElement('div');
+        panel.id = 'vg-network-panel';
+        panel.setAttribute('role', 'region');
+        panel.setAttribute('aria-label', 'VaultGuard Network Inspector');
+        document.body.appendChild(panel);
+      }
+
+      const log = this._networkLog;
+      const formatTime = (ts) => new Date(ts).toLocaleTimeString();
+      const escapeHtml = (str) => {
+        if (str === null || str === undefined) return 'null';
+        return String(str)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;');
+      };
+      const formatJson = (obj) => {
+        try {
+          return escapeHtml(JSON.stringify(obj, null, 2));
+        } catch (e) {
+          return escapeHtml(String(obj));
+        }
+      };
+
+      const directionIcon = (dir) => {
+        switch (dir) {
+          case 'inbound': return '⬇';
+          case 'outbound': return '⬆';
+          case 'error': return '⚠';
+          default: return '•';
+        }
+      };
+
+      const directionColor = (dir) => {
+        switch (dir) {
+          case 'inbound': return '#00d4aa';
+          case 'outbound': return '#60a5fa';
+          case 'error': return '#ef4444';
+          default: return '#94a3b8';
+        }
+      };
+
+      const statusColor = (status) => {
+        if (status >= 200 && status < 300) return '#00d4aa';
+        if (status >= 400 && status < 500) return '#f59e0b';
+        if (status >= 500) return '#ef4444';
+        return '#94a3b8';
+      };
+
+      let entriesHtml = '';
+      for (let i = log.length - 1; i >= 0; i--) {
+        const entry = log[i];
+        const dirColor = directionColor(entry.direction);
+        const statColor = statusColor(entry.status);
+        entriesHtml += `
+          <div class="vg-net-entry" style="border-left: 3px solid ${dirColor}; padding: 8px 12px; margin-bottom: 8px; background: #1e293b; border-radius: 0 6px 6px 0;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+              <span style="color: ${dirColor}; font-weight: 600; font-size: 12px;">
+                ${directionIcon(entry.direction)} ${escapeHtml(entry.endpoint)}
+              </span>
+              <span style="color: #64748b; font-size: 11px;">${formatTime(entry.timestamp)}</span>
+            </div>
+            <div style="color: ${statColor}; font-size: 11px; margin-bottom: 4px;">
+              Status: ${entry.status || 'N/A'} | Direction: ${escapeHtml(entry.direction)}
+            </div>
+            <details style="font-size: 11px;">
+              <summary style="color: #94a3b8; cursor: pointer; user-select: none;">Request Payload</summary>
+              <pre style="background: #0f172a; padding: 8px; border-radius: 4px; overflow-x: auto; color: #e2e8f0; margin: 4px 0 0 0; white-space: pre-wrap; word-break: break-all;">${formatJson(entry.request)}</pre>
+            </details>
+            <details style="font-size: 11px; margin-top: 4px;">
+              <summary style="color: #94a3b8; cursor: pointer; user-select: none;">Response Payload</summary>
+              <pre style="background: #0f172a; padding: 8px; border-radius: 4px; overflow-x: auto; color: #e2e8f0; margin: 4px 0 0 0; white-space: pre-wrap; word-break: break-all;">${formatJson(entry.response)}</pre>
+            </details>
+          </div>`;
+      }
+
+      panel.innerHTML = `
+        <div class="vg-net-header" style="background: linear-gradient(135deg, #1e3a5f 0%, #0f172a 100%); color: white; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 10;">
+          <span style="font-weight: 700; font-size: 14px;">🛡️ VaultGuard Network Inspector</span>
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <span style="background: rgba(0,212,170,0.2); color: #00d4aa; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600;">${log.length} requests</span>
+            <button id="vg-net-clear" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 11px;">Clear</button>
+            <button id="vg-net-close" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 11px;">✕</button>
+          </div>
+        </div>
+        <div class="vg-net-body" style="padding: 12px; max-height: 60vh; overflow-y: auto; font-family: 'JetBrains Mono', 'Fira Code', monospace;">
+          ${entriesHtml || '<div style="color: #64748b; text-align: center; padding: 24px; font-size: 13px;">No network activity yet. Generate a challenge to see traffic.</div>'}
+        </div>`;
+
+      panel.style.cssText = `
+        position: fixed; bottom: 0; right: 0; width: 480px; max-width: 95vw;
+        background: #0f172a; border: 1px solid #334155; border-bottom: none; border-right: none;
+        border-radius: 12px 0 0 0; z-index: 99999; box-shadow: -4px 0 30px rgba(0,0,0,0.4);
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      `;
+
+      const closeBtn = document.getElementById('vg-net-close');
+      if (closeBtn) {
+        closeBtn.addEventListener('click', () => {
+          panel.style.display = 'none';
+        });
+      }
+
+      const clearBtn = document.getElementById('vg-net-clear');
+      if (clearBtn) {
+        clearBtn.addEventListener('click', () => {
+          this._networkLog = [];
+          this._renderNetworkPanel();
+        });
       }
     }
 
@@ -1831,15 +1980,17 @@
           headers['X-VG-Session'] = this._serverToken;
         }
 
+        const verifyReqBody = {
+          challengeId: challenge.serverId || challenge.id,
+          answer: userAnswer,
+          behavioral: trustPayload
+        };
+
         const response = await fetch(`${this.options.serverUrl}/verify`, {
           method: 'POST',
           headers,
           credentials: 'same-origin',
-          body: JSON.stringify({
-            challengeId: challenge.serverId || challenge.id,
-            answer: userAnswer,
-            behavioral: trustPayload
-          })
+          body: JSON.stringify(verifyReqBody)
         });
 
         if (!response.ok) {
@@ -1847,6 +1998,18 @@
         }
 
         const result = await response.json();
+
+        if (this._demoMode) {
+          this._networkLog.push({
+            timestamp: Date.now(),
+            direction: 'outbound',
+            endpoint: '/verify',
+            request: verifyReqBody,
+            response: result,
+            status: response.status
+          });
+          this._renderNetworkPanel();
+        }
 
         if (result.verified) {
           challenge.solved = true;
@@ -1871,6 +2034,17 @@
         }
       } catch (error) {
         console.error(`${VAULTGUARD.name}: Server verification failed:`, error);
+        if (this._demoMode) {
+          this._networkLog.push({
+            timestamp: Date.now(),
+            direction: 'error',
+            endpoint: '/verify',
+            request: { challengeId: challenge.serverId || challenge.id },
+            response: { error: error.message },
+            status: 0
+          });
+          this._renderNetworkPanel();
+        }
         return this._verifyClientAnswer(challenge, userAnswer, formElement);
       }
     }

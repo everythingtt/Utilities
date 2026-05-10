@@ -490,6 +490,11 @@ class VaultGuardServer {
       adaptivePow: options.adaptivePow !== false
     };
 
+    this._demoConfig = {
+      enabled: options.demoMode || false,
+      httpbinUrl: options.httpbinUrl || 'https://httpbin.org'
+    };
+
     if (options.rateLimit !== false) {
       this._rateLimiter = new RateLimiter({
         windowMs: options.rateLimitWindowMs || 60000,
@@ -920,6 +925,187 @@ class VaultGuardServer {
 
       next();
     };
+  }
+
+  /**
+   * Create a demo/debug router that proxies requests through httpbin.org.
+   * This allows developers to inspect the exact request/response payloads
+   * without setting up a real backend.
+   *
+   * Endpoints:
+   *   POST /demo/challenge  → Generates challenge, echoes via httpbin.org/post
+   *   POST /demo/verify     → Verifies answer, echoes via httpbin.org/post
+   *   GET  /demo/inspect    → Returns recent request log for inspection
+   *
+   * @param {Object} expressRouter - Optional Express router to attach to
+   * @returns {Object} Express router with demo endpoints
+   */
+  demoRouter(expressRouter) {
+    const self = this;
+    const express = require('express');
+    const router = expressRouter || express.Router();
+    const requestLog = [];
+    const MAX_LOG = 50;
+
+    function logRequest(type, payload, response) {
+      requestLog.push({
+        timestamp: new Date().toISOString(),
+        type,
+        payload: JSON.parse(JSON.stringify(payload)),
+        response: response ? JSON.parse(JSON.stringify(response)) : null
+      });
+      if (requestLog.length > MAX_LOG) requestLog.shift();
+    }
+
+    router.post('/challenge', async (req, res) => {
+      try {
+        const clientToken = req.sessionID || req.body?.clientToken || null;
+        const challenge = self.generateChallenge(clientToken);
+
+        const echoPayload = {
+          vaultguard: {
+            action: 'generateChallenge',
+            challenge: challenge,
+            serverTime: Date.now(),
+            rateLimit: self._rateLimiter ? 'active' : 'disabled',
+            pow: challenge.pow ? {
+              difficulty: challenge.pow.difficulty,
+              algorithm: 'SHA-256 partial preimage',
+              expectedAttempts: Math.pow(16, challenge.pow.difficulty)
+            } : 'disabled'
+          }
+        };
+
+        logRequest('challenge', req.body, challenge);
+
+        if (self._demoConfig.httpbinUrl) {
+          try {
+            const httpbinResponse = await fetch(`${self._demoConfig.httpbinUrl}/post`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(echoPayload)
+            });
+            const httpbinData = await httpbinResponse.json();
+
+            res.setHeader('X-VG-Demo-Mode', 'httpbin');
+            res.setHeader('X-VG-Challenge-Id', challenge.id);
+            res.json({
+              ...challenge,
+              _demo: {
+                httpbinEcho: httpbinData,
+                inspectionUrl: `${self._demoConfig.httpbinUrl}/post`,
+                note: 'Challenge generated in demo mode. Answer stored server-side only.'
+              }
+            });
+          } catch (httpbinError) {
+            res.setHeader('X-VG-Demo-Mode', 'local');
+            res.json(challenge);
+          }
+        } else {
+          res.setHeader('X-VG-Demo-Mode', 'local');
+          res.json(challenge);
+        }
+      } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+      }
+    });
+
+    router.post('/verify', async (req, res) => {
+      try {
+        const { challengeId, answer, behavioral } = req.body;
+
+        if (!challengeId || answer === undefined) {
+          return res.status(400).json({
+            success: false,
+            verified: false,
+            error: 'Missing challengeId or answer'
+          });
+        }
+
+        const clientToken = req.sessionID || null;
+        const result = self.verifyAnswer(challengeId, answer, behavioral, clientToken);
+
+        const echoPayload = {
+          vaultguard: {
+            action: 'verifyAnswer',
+            challengeId: challengeId,
+            receivedAnswer: answer,
+            behavioral: behavioral,
+            result: result,
+            serverTime: Date.now()
+          }
+        };
+
+        logRequest('verify', req.body, result);
+
+        if (self._demoConfig.httpbinUrl) {
+          try {
+            const httpbinResponse = await fetch(`${self._demoConfig.httpbinUrl}/post`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(echoPayload)
+            });
+            const httpbinData = await httpbinResponse.json();
+
+            res.setHeader('X-VG-Demo-Mode', 'httpbin');
+            res.setHeader('X-VG-Challenge-Id', challengeId);
+            res.json({
+              ...result,
+              _demo: {
+                httpbinEcho: httpbinData,
+                inspectionUrl: `${self._demoConfig.httpbinUrl}/post`,
+                note: result.verified
+                  ? '✓ Verified! Server confirmed the answer.'
+                  : `✗ Not verified. ${result.error || 'Answer incorrect.'}`
+              }
+            });
+          } catch (httpbinError) {
+            res.setHeader('X-VG-Demo-Mode', 'local');
+            res.json(result);
+          }
+        } else {
+          res.setHeader('X-VG-Demo-Mode', 'local');
+          res.json(result);
+        }
+      } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+      }
+    });
+
+    router.get('/inspect', (req, res) => {
+      res.json({
+        demoMode: true,
+        httpbinUrl: self._demoConfig.httpbinUrl,
+        requestLog: requestLog,
+        stats: {
+          totalRequests: requestLog.length,
+          challenges: requestLog.filter(r => r.type === 'challenge').length,
+          verifications: requestLog.filter(r => r.type === 'verify').length,
+          successfulVerifications: requestLog.filter(r => r.type === 'verify' && r.response?.verified).length
+        }
+      });
+    });
+
+    router.get('/status', (req, res) => {
+      res.json({
+        server: VAULTGUARD_SERVER,
+        config: {
+          pow: this._powConfig,
+          rateLimit: this._rateLimiter ? 'active' : 'disabled',
+          demoMode: this._demoConfig.enabled,
+          httpbinUrl: this._demoConfig.httpbinUrl,
+          challengeTypes: this.challengeTypes,
+          ttl: this.ttl,
+          maxAttempts: this.maxAttempts
+        },
+        store: {
+          type: this.store.constructor.name,
+          challengeCount: this.store._store ? this.store._store.size : 'N/A'
+        }
+      });
+    });
+
+    return router;
   }
 
   /**
