@@ -317,6 +317,150 @@ class RedisStore {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// RATE LIMITER — Sliding window counter
+// ═══════════════════════════════════════════════════════════════════════════════
+
+class RateLimiter {
+  constructor(options = {}) {
+    this.windowMs = options.windowMs || 60000;
+    this.maxRequests = options.maxRequests || 30;
+    this.maxVerifyRequests = options.maxVerifyRequests || 10;
+    this.maxChallengeRequests = options.maxChallengeRequests || 20;
+    this.banThreshold = options.banThreshold || 5;
+    this.banDurationMs = options.banDurationMs || 300000;
+    this._requests = new Map();
+    this._bans = new Map();
+    this._violations = new Map();
+    this._cleanupInterval = setInterval(() => this.cleanup(), 30000);
+  }
+
+  _getClientKey(req) {
+    const forwarded = req.headers && req.headers['x-forwarded-for'];
+    const ip = forwarded
+      ? forwarded.split(',')[0].trim()
+      : (req.connection && req.connection.remoteAddress)
+        || (req.socket && req.socket.remoteAddress)
+        || (req.ip)
+        || 'unknown';
+    return ip.replace(/^::ffff:/, '');
+  }
+
+  _isBanned(clientKey) {
+    const banExpiry = this._bans.get(clientKey);
+    if (!banExpiry) return false;
+    if (Date.now() > banExpiry) {
+      this._bans.delete(clientKey);
+      this._violations.delete(clientKey);
+      return false;
+    }
+    return true;
+  }
+
+  _recordViolation(clientKey) {
+    const count = (this._violations.get(clientKey) || 0) + 1;
+    this._violations.set(clientKey, count);
+    if (count >= this.banThreshold) {
+      this._bans.set(clientKey, Date.now() + this.banDurationMs);
+      this._violations.delete(clientKey);
+    }
+  }
+
+  check(req, endpointType = 'default') {
+    const clientKey = this._getClientKey(req);
+
+    if (this._isBanned(clientKey)) {
+      const banExpiry = this._bans.get(clientKey);
+      const retryAfter = Math.ceil((banExpiry - Date.now()) / 1000);
+      return {
+        allowed: false,
+        banned: true,
+        retryAfter: retryAfter,
+        limit: 0,
+        remaining: 0
+      };
+    }
+
+    const now = Date.now();
+    const windowStart = now - this.windowMs;
+    const key = `${clientKey}:${endpointType}`;
+
+    if (!this._requests.has(key)) {
+      this._requests.set(key, []);
+    }
+
+    const timestamps = this._requests.get(key);
+    while (timestamps.length > 0 && timestamps[0] <= windowStart) {
+      timestamps.shift();
+    }
+
+    let maxAllowed;
+    switch (endpointType) {
+      case 'verify':
+        maxAllowed = this.maxVerifyRequests;
+        break;
+      case 'challenge':
+        maxAllowed = this.maxChallengeRequests;
+        break;
+      default:
+        maxAllowed = this.maxRequests;
+    }
+
+    const currentCount = timestamps.length;
+
+    if (currentCount >= maxAllowed) {
+      this._recordViolation(clientKey);
+      const oldestInWindow = timestamps[0];
+      const retryAfter = Math.ceil((oldestInWindow + this.windowMs - now) / 1000);
+      return {
+        allowed: false,
+        banned: false,
+        retryAfter: Math.max(1, retryAfter),
+        limit: maxAllowed,
+        remaining: 0
+      };
+    }
+
+    timestamps.push(now);
+
+    return {
+      allowed: true,
+      banned: false,
+      retryAfter: 0,
+      limit: maxAllowed,
+      remaining: maxAllowed - currentCount - 1
+    };
+  }
+
+  cleanup() {
+    const now = Date.now();
+    const windowStart = now - this.windowMs;
+
+    for (const [key, timestamps] of this._requests) {
+      while (timestamps.length > 0 && timestamps[0] <= windowStart) {
+        timestamps.shift();
+      }
+      if (timestamps.length === 0) {
+        this._requests.delete(key);
+      }
+    }
+
+    for (const [key, expiry] of this._bans) {
+      if (now > expiry) {
+        this._bans.delete(key);
+        this._violations.delete(key);
+      }
+    }
+  }
+
+  destroy() {
+    clearInterval(this._cleanupInterval);
+    this._requests.clear();
+    this._bans.clear();
+    this._violations.clear();
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // VAULTGUARD SERVER — Main class
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -339,6 +483,19 @@ class VaultGuardServer {
     }
 
     this._sessionBindings = new Map();
+
+    if (options.rateLimit !== false) {
+      this._rateLimiter = new RateLimiter({
+        windowMs: options.rateLimitWindowMs || 60000,
+        maxRequests: options.rateLimitMax || 30,
+        maxChallengeRequests: options.rateLimitMaxChallenge || 20,
+        maxVerifyRequests: options.rateLimitMaxVerify || 10,
+        banThreshold: options.rateLimitBanThreshold || 5,
+        banDurationMs: options.rateLimitBanDurationMs || 300000
+      });
+    } else {
+      this._rateLimiter = null;
+    }
   }
 
   /**
@@ -636,19 +793,49 @@ class VaultGuardServer {
     const self = this;
 
     return function vaultGuardMiddleware(req, res, next) {
+      let rateLimitInfo = null;
+
+      if (self._rateLimiter) {
+        const endpointType = req.path.includes('verify') ? 'verify'
+          : req.path.includes('challenge') ? 'challenge'
+            : 'default';
+        rateLimitInfo = self._rateLimiter.check(req, endpointType);
+
+        res.setHeader('X-RateLimit-Limit', rateLimitInfo.limit);
+        res.setHeader('X-RateLimit-Remaining', Math.max(0, rateLimitInfo.remaining));
+
+        if (!rateLimitInfo.allowed) {
+          res.setHeader('Retry-After', rateLimitInfo.retryAfter);
+          res.status(429).json({
+            success: false,
+            error: rateLimitInfo.banned
+              ? 'Too many requests. You have been temporarily banned.'
+              : 'Rate limit exceeded. Please slow down.',
+            retryAfter: rateLimitInfo.retryAfter,
+            banned: rateLimitInfo.banned
+          });
+          return;
+        }
+      }
+
       req.vaultGuard = {
         generateChallenge: (clientToken) => self.generateChallenge(clientToken),
         verifyAnswer: (challengeId, answer, behavioral, token) =>
           self.verifyAnswer(challengeId, answer, behavioral, token),
         generateCSRFToken: (sessionId) => self.generateCSRFToken(sessionId),
         validateCSRFToken: (token, sessionId) => self.validateCSRFToken(token, sessionId),
-        invalidateChallenge: (id) => self.invalidateChallenge(id)
+        invalidateChallenge: (id) => self.invalidateChallenge(id),
+        getRateLimitInfo: () => rateLimitInfo
       };
 
       res.vaultGuardJSON = (data) => {
         res.setHeader('Content-Type', 'application/json');
         res.setHeader('X-Content-Type-Options', 'nosniff');
         res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+        if (rateLimitInfo) {
+          res.setHeader('X-RateLimit-Limit', rateLimitInfo.limit);
+          res.setHeader('X-RateLimit-Remaining', Math.max(0, rateLimitInfo.remaining));
+        }
         res.json(data);
       };
 
@@ -662,6 +849,7 @@ class VaultGuardServer {
   destroy() {
     this.store.destroy();
     this._sessionBindings.clear();
+    if (this._rateLimiter) this._rateLimiter.destroy();
   }
 }
 
@@ -686,6 +874,7 @@ module.exports = {
   VaultGuardServer,
   MemoryStore,
   RedisStore,
+  RateLimiter,
   ServerCrypto,
   ServerChallengeGenerators,
   VAULTGUARD_SERVER

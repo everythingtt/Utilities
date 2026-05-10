@@ -47,7 +47,13 @@ app.use(vaultGuard.middleware({
   secret: 'your-secret-key-change-in-production',
   ttl: 300000,
   maxAttempts: 3,
-  challengeTypes: ['math', 'text', 'pattern', 'imagePuzzle', 'textIllusion', 'audio', 'visualPath']
+  challengeTypes: ['math', 'text', 'pattern', 'imagePuzzle', 'textIllusion', 'audio', 'visualPath'],
+  rateLimit: true,
+  rateLimitWindowMs: 60000,
+  rateLimitMaxChallenge: 20,
+  rateLimitMaxVerify: 10,
+  rateLimitBanThreshold: 5,
+  rateLimitBanDurationMs: 300000
 }));
 
 // Security headers
