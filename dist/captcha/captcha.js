@@ -2143,7 +2143,7 @@
       const data = challengeData.powChallenge.challenge + powSolution.nonce.toString();
       const hash = await CryptoUtils.hash(data);
       return hash.startsWith(target);
-    },
+    }
 
     /**
      * Get challenge status
