@@ -1667,15 +1667,7 @@
           imageCount: serverChallenge.imageCount || null,
           powChallenge: serverChallenge.pow || null,
           powSolution: null,
-          _serverMode: true
-        };
-
-        this.challenges.set(serverChallenge.id, challengeData);
-
-        const result = {
-          id: serverChallenge.id,
-          question: serverChallenge.question,
-          type: serverChallenge.type,
+          _serverMode: true,
           expiresIn: serverChallenge.expiresIn,
           images: serverChallenge.images || null,
           canvas: serverChallenge.canvas || null,
@@ -1686,18 +1678,18 @@
           minTracePoints: serverChallenge.minTracePoints || null,
           pathType: serverChallenge.pathType || null,
           word: serverChallenge.word || null,
-          digitCount: serverChallenge.digitCount || null,
-          powChallenge: serverChallenge.pow || null,
-          powSolution: null
+          digitCount: serverChallenge.digitCount || null
         };
+
+        this.challenges.set(serverChallenge.id, challengeData);
 
         if (['textIllusion', 'audio', 'visualPath'].includes(serverChallenge.type)) {
           const generator = ChallengeGenerators[serverChallenge.type];
-          const localRender = generator(result);
-          if (localRender.canvas) result.canvas = localRender.canvas;
-          if (localRender.audioSamples) result.audioSamples = localRender.audioSamples;
-          if (localRender.audioSampleRate) result.audioSampleRate = localRender.audioSampleRate;
-          if (localRender.pathPoints) result.pathPoints = localRender.pathPoints;
+          const localRender = generator(challengeData);
+          if (localRender.canvas) challengeData.canvas = localRender.canvas;
+          if (localRender.audioSamples) challengeData.audioSamples = localRender.audioSamples;
+          if (localRender.audioSampleRate) challengeData.audioSampleRate = localRender.audioSampleRate;
+          if (localRender.pathPoints) challengeData.pathPoints = localRender.pathPoints;
         }
 
         this._emitHook('onChallengeGenerated', {
@@ -1708,7 +1700,7 @@
           serverMode: true
         });
 
-        return result;
+        return challengeData;
       } catch (error) {
         console.error(`${VAULTGUARD.name}: Server challenge fetch failed, falling back to client mode:`, error);
         if (this._demoMode) {
