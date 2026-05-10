@@ -2133,7 +2133,7 @@
       const difficulty = 2;
       const challenge = CryptoUtils.generateToken(16);
       return { challenge, difficulty, _clientGenerated: true };
-    },
+    }
 
     async _verifyClientPoW(challengeData, powSolution) {
       if (!challengeData.powChallenge) return true;
