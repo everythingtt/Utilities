@@ -1,0 +1,1049 @@
+<pre><code>╔═══════════════════════════════════════════════════════════════════════════════╗
+║                                                                             ║
+║   ██╗   ██╗ █████╗ ██╗   ██╗██╗  ████████╗ ██████╗ ██╗   ██╗ █████╗ ██████╗ ██████╗  ║
+║   ██║   ██║██╔══██╗██║   ██║██║  ╚══██╔══╝██╔════╝ ██║   ██║██╔══██╗██╔══██╗██╔══██╗ ║
+║   ██║   ██║███████║██║   ██║██║     ██║   ██║  ███╗██║   ██║███████║██████╔╝██║  ██║ ║
+║   ╚██╗ ██╔╝██╔══██║██║   ██║██║     ██║   ██║   ██║██║   ██║██╔══██║██╔══██╗██║  ██║ ║
+║    ╚████╔╝ ██║  ██║╚██████╔╝███████╗██║   ╚██████╔╝╚██████╔╝██║  ██║██║  ██║██████╔╝ ║
+║     ╚═══╝  ╚═╝  ╚═╝ ╚═════╝ ╚══════╝╚═╝    ╚═════╝  ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═════╝  ║
+║                                                                             ║
+║                    🛡️  VAULTGUARD™ CAPTCHA v2<span class="hljs-meta">.0</span><span class="hljs-meta">.0</span>  🛡️                      ║
+║                                                                             ║
+║   Privacy-First • <span class="hljs-meta">Zero</span> Tracking • Cryptographically Secure                  ║
+║                                                                             ║
+╚═══════════════════════════════════════════════════════════════════════════════╝
+</code></pre><h1 id="vaultguard-captcha">VaultGuard™ CAPTCHA</h1>
+<p><strong>A privacy-first, cryptographically secure CAPTCHA solution with client-server architecture.</strong></p>
+<p><a href="https://github.com/everythingtt/Utilities"><img src="https://img.shields.io/badge/version-2.0.0-blue.svg" alt="Version"></a>
+<a href="https://github.com/everythingtt/Utilities/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-green.svg" alt="License"></a>
+<a href="https://everythingtt.github.io/Utilities/dist/captcha/privacy.html"><img src="https://img.shields.io/badge/privacy-zero%20tracking-brightgreen.svg" alt="Privacy"></a></p>
+<h2 id="-features">✨ Features</h2>
+<ul>
+<li>🔒 <strong>Server-Side Answer Validation</strong> - The server is the source of truth for challenge answers. Answers never leave the server.</li>
+<li>👁️ <strong>Zero Tracking</strong> - No canvas fingerprinting, cookies, or user tracking</li>
+<li>🚫 <strong>No Client Dependencies</strong> - Completely self-contained (server uses Node.js built-ins)</li>
+<li>⏱️ <strong>Time-Limited Challenges</strong> - Configurable expiry (default 5 minutes)</li>
+<li>🎯 <strong>7 Challenge Types</strong> - Math, text, pattern, image puzzle, text illusion, audio, and visual path</li>
+<li>🎨 <strong>Beautiful Branded UI</strong> - Professional, accessible design</li>
+<li>📦 <strong>Single File Client</strong> - Easy to deploy and integrate</li>
+<li>🤖 <strong>Anti-Bot Detection</strong> - Behavioral analysis with trust scoring, honeypot fields, timing checks</li>
+<li>🛡️ <strong>Web Attack Protection</strong> - XSS sanitization, CSRF tokens, clickjacking protection, tabnapping defense</li>
+<li>🔍 <strong>Rogue Extension Detection</strong> - Scans for malicious browser extensions</li>
+<li>🔐 <strong>Security Headers</strong> - CSP generation, recommended HTTP headers</li>
+<li>🔄 <strong>Double-Gate Validation</strong> - Client-side (Gate 1) + Server-side (Gate 2) verification</li>
+<li>📊 <strong>Trust Scoring</strong> - Behavioral signals sent to server for risk assessment</li>
+<li>🔌 <strong>Pluggable Storage</strong> - Memory store (dev) or Redis store (production)</li>
+<li>⛏️ <strong>Proof-of-Work</strong> - Hash-based PoW challenges force computational cost on bots (Hashcash-style)</li>
+<li>📈 <strong>Adaptive Difficulty</strong> - PoW difficulty scales with trust score (suspicious clients get harder puzzles)</li>
+<li>🚦 <strong>Rate Limiting</strong> - Sliding window rate limiter with automatic IP banning for abuse</li>
+</ul>
+<h2 id="-quick-start">🚀 Quick Start</h2>
+<h3 id="-architecture-v2-0-">🏗️ Architecture (v2.0)</h3>
+<pre><code>┌─────────────────────────────────────────────────────────────┐
+│                    VAULTGUARD™ v2.<span class="hljs-number">0</span>                         │
+│                                                             │
+│  ┌──────────┐    POST /challenge     ┌──────────────────┐  │
+│  │          │ ──────────────────────► │                  │  │
+│  │  Client  │    { id, question }     │  Server          │  │
+│  │          │ ◄────────────────────── │  (Source <span class="hljs-keyword">of</span>      │  │
+│  │  captcha │                         │   Truth)         │  │
+│  │  .js     │    POST /verify         │                  │  │
+│  │          │ ──────────────────────► │  vaultguard-     │  │
+│  │          │  { id, answer }         │  server.js       │  │
+│  │          │ ◄────────────────────── │                  │  │
+│  │          │  { verified, score }    │  Memory / Redis  │  │
+│  └──────────┘                         └──────────────────┘  │
+│                                                             │
+│  Gate <span class="hljs-number">1</span>: Client-side security (honeypot, behavioral, CSRF)  │
+│  Gate <span class="hljs-number">2</span>: Server-side answer validation (source <span class="hljs-keyword">of</span> truth)    │
+└─────────────────────────────────────────────────────────────┘
+</code></pre><h3 id="server-setup-required-for-production-">Server Setup (Required for Production)</h3>
+<pre><code class="lang-bash">npm <span class="hljs-keyword">install</span> express express-<span class="hljs-keyword">session</span>
+# <span class="hljs-keyword">For</span> production: npm <span class="hljs-keyword">install</span> redis
+</code></pre>
+<pre><code class="lang-javascript"><span class="hljs-comment">// server.js</span>
+<span class="hljs-keyword">const</span> express = <span class="hljs-keyword">require</span>(<span class="hljs-string">'express'</span>);
+<span class="hljs-keyword">const</span> vaultGuard = <span class="hljs-keyword">require</span>(<span class="hljs-string">'./vaultguard-server'</span>);
+
+<span class="hljs-keyword">const</span> app = express();
+app.<span class="hljs-keyword">use</span>(express.json());
+
+<span class="hljs-comment">// VaultGuard middleware — adds req.vaultGuard methods</span>
+app.<span class="hljs-keyword">use</span>(vaultGuard.middleware({
+  secret: <span class="hljs-string">'your-secret-key'</span>,
+  ttl: <span class="hljs-number">300000</span>,
+  <span class="hljs-comment">// redis: redisClient, // Uncomment for production</span>
+}));
+
+<span class="hljs-comment">// Challenge endpoint — generates challenge, stores answer server-side</span>
+app.post(<span class="hljs-string">'/api/vaultguard/challenge'</span>, (req, res) =&gt; {
+  <span class="hljs-keyword">const</span> challenge = req.vaultGuard.generateChallenge(req.sessionID);
+  res.json(challenge);
+});
+
+<span class="hljs-comment">// Verify endpoint — server checks answer against stored value</span>
+app.post(<span class="hljs-string">'/api/vaultguard/verify'</span>, (req, res) =&gt; {
+  <span class="hljs-keyword">const</span> { challengeId, answer, behavioral } = req.body;
+  <span class="hljs-keyword">const</span> result = req.vaultGuard.verifyAnswer(challengeId, answer, behavioral, req.sessionID);
+  res.json(result);
+});
+
+app.listen(<span class="hljs-number">3000</span>);
+</code></pre>
+<h3 id="browser-with-server-recommended-">Browser (with Server — Recommended)</h3>
+<pre><code class="lang-html"><span class="hljs-meta">&lt;!DOCTYPE html&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-name">html</span>&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-name">head</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">title</span>&gt;</span>VaultGuard CAPTCHA Demo<span class="hljs-tag">&lt;/<span class="hljs-name">title</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">head</span>&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-name">body</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">div</span> <span class="hljs-attr">id</span>=<span class="hljs-string">"captcha-container"</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-name">div</span>&gt;</span>
+
+  <span class="hljs-tag">&lt;<span class="hljs-name">script</span> <span class="hljs-attr">src</span>=<span class="hljs-string">"captcha.js"</span>&gt;</span><span class="undefined"></span><span class="hljs-tag">&lt;/<span class="hljs-name">script</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">script</span>&gt;</span><span class="javascript">
+    VaultGuard.quickSetup(<span class="hljs-string">'captcha-container'</span>, {
+      <span class="hljs-attr">captcha</span>: {
+        <span class="hljs-attr">serverUrl</span>: <span class="hljs-string">'/api/vaultguard'</span>,  <span class="hljs-comment">// ← Enable server mode</span>
+        expiryTime: <span class="hljs-number">300000</span>,
+        <span class="hljs-attr">maxAttempts</span>: <span class="hljs-number">3</span>,
+        <span class="hljs-attr">enableBotDetection</span>: <span class="hljs-literal">true</span>,
+        <span class="hljs-attr">enableCSRF</span>: <span class="hljs-literal">true</span>,
+        <span class="hljs-attr">enableHoneypot</span>: <span class="hljs-literal">true</span>
+      },
+      <span class="hljs-attr">security</span>: {
+        <span class="hljs-attr">enableBehavioralTracking</span>: <span class="hljs-literal">true</span>,
+        <span class="hljs-attr">enableFrameBusting</span>: <span class="hljs-literal">true</span>,
+        <span class="hljs-attr">enableTabnappingProtection</span>: <span class="hljs-literal">true</span>,
+        <span class="hljs-attr">enableExtensionDetection</span>: <span class="hljs-literal">true</span>,
+        <span class="hljs-attr">enableCSP</span>: <span class="hljs-literal">true</span>
+      },
+      <span class="hljs-attr">callbacks</span>: {
+        <span class="hljs-attr">onSuccess</span>: <span class="hljs-function">(<span class="hljs-params">result, id</span>) =&gt;</span> {
+          <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'Verified! Trust score:'</span>, result.trustScore);
+        },
+        <span class="hljs-attr">onError</span>: <span class="hljs-function">(<span class="hljs-params">result, id</span>) =&gt;</span> {
+          <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'Failed:'</span>, result.error);
+        }
+      }
+    });
+  </span><span class="hljs-tag">&lt;/<span class="hljs-name">script</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">body</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">html</span>&gt;</span>
+</code></pre>
+<h3 id="browser-client-side-only-demo-prototyping-">Browser (Client-Side Only — Demo/Prototyping)</h3>
+<blockquote>
+<p>⚠️ <strong>Warning:</strong> Client-side mode stores answers in the browser. This is vulnerable to bots that read JavaScript variables. Always use server mode for production.</p>
+</blockquote>
+<pre><code class="lang-html"><span class="hljs-tag">&lt;<span class="hljs-name">div</span> <span class="hljs-attr">id</span>=<span class="hljs-string">"captcha-container"</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-name">div</span>&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-name">script</span> <span class="hljs-attr">src</span>=<span class="hljs-string">"captcha.js"</span>&gt;</span><span class="undefined"></span><span class="hljs-tag">&lt;/<span class="hljs-name">script</span>&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-name">script</span>&gt;</span><span class="javascript">
+  VaultGuard.quickSetup(<span class="hljs-string">'captcha-container'</span>, {
+    <span class="hljs-attr">captcha</span>: {
+      <span class="hljs-comment">// No serverUrl = client-side mode (not recommended for production)</span>
+      enableBotDetection: <span class="hljs-literal">true</span>,
+      <span class="hljs-attr">enableHoneypot</span>: <span class="hljs-literal">true</span>
+    },
+    <span class="hljs-attr">callbacks</span>: {
+      <span class="hljs-attr">onSuccess</span>: <span class="hljs-function">(<span class="hljs-params">result</span>) =&gt;</span> <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'Verified!'</span>),
+      <span class="hljs-attr">onError</span>: <span class="hljs-function">(<span class="hljs-params">result</span>) =&gt;</span> <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'Failed:'</span>, result.error)
+    }
+  });
+</span><span class="hljs-tag">&lt;/<span class="hljs-name">script</span>&gt;</span>
+</code></pre>
+<h3 id="browser-module-">Browser (Module)</h3>
+<pre><code class="lang-javascript"><span class="hljs-keyword">import</span> VaultGuard <span class="hljs-keyword">from</span> <span class="hljs-string">'./captcha.js'</span>;
+
+<span class="hljs-keyword">const</span> { captcha, controller } = <span class="hljs-keyword">await</span> VaultGuard.quickSetup(<span class="hljs-string">'captcha-container'</span>, {
+  <span class="hljs-attr">callbacks</span>: {
+    <span class="hljs-attr">onSuccess</span>: <span class="hljs-function">(<span class="hljs-params">result</span>) =&gt;</span> <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'Verified!'</span>),
+    <span class="hljs-attr">onError</span>: <span class="hljs-function">(<span class="hljs-params">result</span>) =&gt;</span> <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'Failed:'</span>, result.error)
+  }
+});
+
+<span class="hljs-comment">// Reload challenge manually</span>
+controller.reload();
+</code></pre>
+<h3 id="node-js-server">Node.js Server</h3>
+<pre><code class="lang-javascript"><span class="hljs-keyword">const</span> vaultGuard = <span class="hljs-built_in">require</span>(<span class="hljs-string">'./vaultguard-server'</span>);
+
+<span class="hljs-comment">// Create server instance</span>
+<span class="hljs-keyword">const</span> vg = vaultGuard.create({
+  <span class="hljs-attr">secret</span>: <span class="hljs-string">'your-secret-key'</span>,
+  <span class="hljs-attr">ttl</span>: <span class="hljs-number">300000</span>,
+  <span class="hljs-attr">maxAttempts</span>: <span class="hljs-number">3</span>,
+  <span class="hljs-comment">// redis: redisClient, // For production</span>
+});
+
+<span class="hljs-comment">// Generate challenge (answer stored server-side)</span>
+<span class="hljs-keyword">const</span> challenge = vg.generateChallenge();
+<span class="hljs-built_in">console</span>.log(challenge.question); <span class="hljs-comment">// "What is 12 + 7?"</span>
+<span class="hljs-comment">// challenge.answer is NOT included — only the server knows it</span>
+
+<span class="hljs-comment">// Verify answer (server compares against stored answer)</span>
+<span class="hljs-keyword">const</span> result = vg.verifyAnswer(challenge.id, <span class="hljs-string">'19'</span>);
+<span class="hljs-built_in">console</span>.log(result.verified); <span class="hljs-comment">// true</span>
+<span class="hljs-built_in">console</span>.log(result.trustScore); <span class="hljs-comment">// 0.0 - 1.0</span>
+</code></pre>
+<h3 id="node-js-client-serverless-mode-">Node.js Client (Serverless Mode)</h3>
+<pre><code class="lang-javascript"><span class="hljs-keyword">const</span> VaultGuard = <span class="hljs-built_in">require</span>(<span class="hljs-string">'./captcha.js'</span>);
+
+<span class="hljs-keyword">const</span> captcha = <span class="hljs-keyword">new</span> VaultGuard.Captcha();
+
+<span class="hljs-comment">// Generate challenge</span>
+<span class="hljs-keyword">const</span> challenge = <span class="hljs-keyword">await</span> captcha.generateChallenge();
+<span class="hljs-built_in">console</span>.log(challenge.question);
+
+<span class="hljs-comment">// Verify answer</span>
+<span class="hljs-keyword">const</span> result = <span class="hljs-keyword">await</span> captcha.verifyAnswer(challenge.id, <span class="hljs-string">'42'</span>);
+<span class="hljs-built_in">console</span>.log(result.success); <span class="hljs-comment">// true or false</span>
+</code></pre>
+<h2 id="-proof-of-work-pow-">⛏️ Proof-of-Work (PoW)</h2>
+<p>VaultGuard™ uses a Hashcash-style Proof-of-Work system to impose a computational cost on each challenge request. This makes large-scale bot attacks expensive — while a human solving one challenge per form submission barely notices the CPU work, an attacker trying millions of requests faces prohibitive compute costs.</p>
+<h3 id="how-it-works">How It Works</h3>
+<pre><code>Server                              Client
+  │                                    │
+  │  1. Generate challenge + secret    │
+  │  2. Store secret server-side       │
+  │  3. Send { challenge, difficulty } │
+  │ ──────────────────────────────────►│
+  │                                    │  4. Find nonce where
+  │                                    │     SHA-256(secret + nonce)
+  │                                    │     starts with N zeros
+  │                                    │
+  │  6. Verify: hash(secret + nonce)   │
+  │     starts with N zeros?           │
+  │ ◄──────────────────────────────────│  5. Send { nonce, elapsedMs }
+  │                                    │
+  │  7. Also<span class="hljs-built_in"> check </span>elapsedMs is        │
+  │     reasonable (anti-precompute)   │
+</code></pre><h3 id="difficulty-levels">Difficulty Levels</h3>
+<table>
+<thead>
+<tr>
+<th>Difficulty</th>
+<th>Leading Zeros</th>
+<th>Avg Attempts</th>
+<th>Avg Time (modern CPU)</th>
+<th>Use Case</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>1 hex char</td>
+<td>16</td>
+<td>&lt;0.1s</td>
+<td>Testing only</td>
+</tr>
+<tr>
+<td>2</td>
+<td>2 hex chars</td>
+<td>256</td>
+<td>~0.5s</td>
+<td>Low security</td>
+</tr>
+<tr>
+<td>3</td>
+<td>3 hex chars</td>
+<td>4,096</td>
+<td>~2s</td>
+<td><strong>Default</strong></td>
+</tr>
+<tr>
+<td>4</td>
+<td>4 hex chars</td>
+<td>65,536</td>
+<td>~15s</td>
+<td>High security</td>
+</tr>
+<tr>
+<td>5</td>
+<td>5 hex chars</td>
+<td>1,048,576</td>
+<td>~5min</td>
+<td>Paranoid mode</td>
+</tr>
+</tbody>
+</table>
+<h3 id="adaptive-difficulty">Adaptive Difficulty</h3>
+<p>When <code>adaptivePow</code> is enabled (default), the server adjusts PoW difficulty based on the client&#39;s trust score:</p>
+<table>
+<thead>
+<tr>
+<th>Trust Score</th>
+<th>Difficulty Adjustment</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>≥ 0.8 (trusted)</td>
+<td>−1 level (easier)</td>
+</tr>
+<tr>
+<td>≥ 0.5 (normal)</td>
+<td>Base difficulty</td>
+</tr>
+<tr>
+<td>≥ 0.3 (suspicious)</td>
+<td>+1 level (harder)</td>
+</tr>
+<tr>
+<td>&lt; 0.3 (very suspicious)</td>
+<td>+2 levels (much harder)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="configuration">Configuration</h3>
+<pre><code class="lang-javascript">app.use(vaultGuard.middleware({
+  pow: <span class="hljs-keyword">true</span>,              // Enable PoW (<span class="hljs-keyword">default</span>: <span class="hljs-keyword">true</span>)
+  powDifficulty: 3,       // Base difficulty 1-5 (<span class="hljs-keyword">default</span>: 3)
+  adaptivePow: <span class="hljs-keyword">true</span>       // Scale difficulty by trust score (<span class="hljs-keyword">default</span>: <span class="hljs-keyword">true</span>)
+}));
+</code></pre>
+<h3 id="client-side-behavior">Client-Side Behavior</h3>
+<ul>
+<li>PoW solving runs <strong>in the background</strong> while the user interacts with the challenge</li>
+<li>The UI shows &quot;Computing proof-of-work...&quot; if the user submits before PoW completes</li>
+<li>The solver yields to the main thread every 5,000 attempts to keep the UI responsive</li>
+<li>Maximum wait time: 60 seconds (after which the user can retry)</li>
+</ul>
+<h3 id="server-side-verification">Server-Side Verification</h3>
+<p>The server verifies:</p>
+<ol>
+<li><strong>Hash validity</strong>: <code>SHA-256(secret + nonce)</code> starts with the required number of zeros</li>
+<li><strong>Minimum time</strong>: The solution wasn&#39;t computed impossibly fast (pre-computation detection)</li>
+<li><strong>One-time use</strong>: Each PoW challenge is deleted after verification (replay prevention)</li>
+</ol>
+<h2 id="-api-reference">📖 API Reference</h2>
+<h3 id="-vaultguard-quicksetup-containerid-options-"><code>VaultGuard.quickSetup(containerId, options)</code></h3>
+<p>Quick setup helper that creates and initializes a CAPTCHA form.</p>
+<p><strong>Parameters:</strong></p>
+<ul>
+<li><code>containerId</code> (string) - ID of the container element</li>
+<li><code>options</code> (object) - Configuration options<ul>
+<li><code>captcha</code> (object) - CAPTCHA instance options</li>
+<li><code>callbacks</code> (object) - Event callbacks<ul>
+<li><code>onSuccess(result, challengeId)</code> - Called on successful verification</li>
+<li><code>onError(result, challengeId)</code> - Called on verification failure</li>
+<li><code>onChallengeLoaded(challenge)</code> - Called when new challenge loads</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<p><strong>Returns:</strong> <code>Promise&lt;{ captcha, form, controller }&gt;</code></p>
+<pre><code class="lang-javascript"><span class="hljs-keyword">const</span> { captcha, form, controller } = <span class="hljs-keyword">await</span> VaultGuard.quickSetup(<span class="hljs-string">'container'</span>, {
+  <span class="hljs-attr">captcha</span>: {
+    <span class="hljs-attr">expiryTime</span>: <span class="hljs-number">600000</span>,  <span class="hljs-comment">// 10 minutes</span>
+    maxAttempts: <span class="hljs-number">5</span>
+  },
+  <span class="hljs-attr">callbacks</span>: {
+    <span class="hljs-attr">onSuccess</span>: <span class="hljs-function">(<span class="hljs-params">result, id</span>) =&gt;</span> alert(<span class="hljs-string">'Verified!'</span>),
+    <span class="hljs-attr">onError</span>: <span class="hljs-function">(<span class="hljs-params">result, id</span>) =&gt;</span> alert(<span class="hljs-string">'Failed: '</span> + result.error)
+  }
+});
+</code></pre>
+<hr>
+<h3 id="-new-vaultguard-captcha-options-"><code>new VaultGuard.Captcha(options)</code></h3>
+<p>Create a new CAPTCHA instance.</p>
+<p><strong>Parameters:</strong></p>
+<ul>
+<li><code>options</code> (object)<ul>
+<li><code>difficulty</code> (string) - <code>&#39;easy&#39;</code>, <code>&#39;medium&#39;</code>, or <code>&#39;hard&#39;</code> (default: <code>&#39;medium&#39;</code>)</li>
+<li><code>expiryTime</code> (number) - Challenge expiry in milliseconds (default: <code>300000</code>)</li>
+<li><code>maxAttempts</code> (number) - Maximum verification attempts (default: <code>3</code>)</li>
+<li><code>challengeTypes</code> (string[]) - Available types: <code>&#39;math&#39;</code>, <code>&#39;text&#39;</code>, <code>&#39;pattern&#39;</code>, <code>&#39;imagePuzzle&#39;</code> (default: all)</li>
+<li><code>enableBotDetection</code> (boolean) - Enable behavioral bot detection (default: <code>true</code>)</li>
+<li><code>enableCSRF</code> (boolean) - Enable CSRF token protection (default: <code>true</code>)</li>
+<li><code>enableFingerprintBinding</code> (boolean) - Bind challenges to browser fingerprint (default: <code>true</code>)</li>
+<li><code>enableHoneypot</code> (boolean) - Deploy honeypot fields in forms (default: <code>true</code>)</li>
+<li><code>botScoreThreshold</code> (number) - Bot score threshold 0.0-1.0 (default: <code>0.5</code>)</li>
+</ul>
+</li>
+</ul>
+<pre><code class="lang-javascript">const captcha = new VaultGuard.Captcha({
+<span class="hljs-attr">  difficulty:</span> <span class="hljs-string">'hard'</span>,
+<span class="hljs-attr">  expiryTime:</span> <span class="hljs-number">600000</span>,
+<span class="hljs-attr">  maxAttempts:</span> <span class="hljs-number">5</span>,
+<span class="hljs-attr">  challengeTypes:</span> [<span class="hljs-string">'math'</span>, <span class="hljs-string">'text'</span>, <span class="hljs-string">'imagePuzzle'</span>],
+<span class="hljs-attr">  enableBotDetection:</span> <span class="hljs-literal">true</span>,
+<span class="hljs-attr">  enableCSRF:</span> <span class="hljs-literal">true</span>,
+<span class="hljs-attr">  enableFingerprintBinding:</span> <span class="hljs-literal">true</span>,
+<span class="hljs-attr">  enableHoneypot:</span> <span class="hljs-literal">true</span>,
+<span class="hljs-attr">  botScoreThreshold:</span> <span class="hljs-number">0.5</span>
+});
+</code></pre>
+<hr>
+<h3 id="-captcha-generatechallenge-"><code>captcha.generateChallenge()</code></h3>
+<p>Generate a new verification challenge.</p>
+<p><strong>Returns:</strong> <code>Promise&lt;{ id, question, type, expiresIn }&gt;</code></p>
+<pre><code class="lang-javascript">const challenge = await captcha.generateChallenge();
+<span class="hljs-regexp">//</span> {
+<span class="hljs-regexp">//</span>   id: <span class="hljs-string">'a1b2c3d4e5f6...'</span>,
+<span class="hljs-regexp">//</span>   question: <span class="hljs-string">'What is 12 + 5?'</span>,
+<span class="hljs-regexp">//</span>   type: <span class="hljs-string">'math'</span>,
+<span class="hljs-regexp">//</span>   expiresIn: <span class="hljs-number">300000</span>
+<span class="hljs-regexp">//</span> }
+</code></pre>
+<hr>
+<h3 id="-captcha-verifyanswer-challengeid-useranswer-formelement-"><code>captcha.verifyAnswer(challengeId, userAnswer, formElement?)</code></h3>
+<p>Verify user&#39;s answer to a challenge.</p>
+<p><strong>Parameters:</strong></p>
+<ul>
+<li><code>challengeId</code> (string) - The challenge ID</li>
+<li><code>userAnswer</code> (string) - User&#39;s answer</li>
+<li><code>formElement</code> (HTMLFormElement, optional) - The form element. When provided, enables honeypot checking, CSRF validation, and fingerprint verification.</li>
+</ul>
+<p><strong>Returns:</strong> <code>Promise&lt;{ success, verified?, error?, remainingAttempts?, securityFlag? }&gt;</code></p>
+<pre><code class="lang-javascript">const result = await captcha.verifyAnswer(challenge.id, <span class="hljs-string">'17'</span>, formElement);
+// { success: <span class="hljs-keyword">true</span>, verified: <span class="hljs-keyword">true</span>, brand: <span class="hljs-string">'VaultGuard™'</span> }
+
+const failed = await captcha.verifyAnswer(challenge.id, <span class="hljs-string">'99'</span>, formElement);
+// { success: <span class="hljs-keyword">false</span>, <span class="hljs-built_in">error</span>: <span class="hljs-string">'Incorrect answer'</span>, remainingAttempts: <span class="hljs-number">2</span>, brand: <span class="hljs-string">'VaultGuard™'</span> }
+
+// Security flag responses:
+// { success: <span class="hljs-keyword">false</span>, <span class="hljs-built_in">error</span>: <span class="hljs-string">'Automated submission detected'</span>, securityFlag: <span class="hljs-string">'honeypot_triggered'</span> }
+// { success: <span class="hljs-keyword">false</span>, <span class="hljs-built_in">error</span>: <span class="hljs-string">'Security token invalid...'</span>, securityFlag: <span class="hljs-string">'csrf_failed'</span> }
+// { success: <span class="hljs-keyword">false</span>, <span class="hljs-built_in">error</span>: <span class="hljs-string">'Automated behavior detected...'</span>, securityFlag: <span class="hljs-string">'bot_detected'</span> }
+// { success: <span class="hljs-keyword">false</span>, <span class="hljs-built_in">error</span>: <span class="hljs-string">'Session binding failed...'</span>, securityFlag: <span class="hljs-string">'fingerprint_mismatch'</span> }
+</code></pre>
+<hr>
+<h3 id="-captcha-getchallengestatus-challengeid-"><code>captcha.getChallengeStatus(challengeId)</code></h3>
+<p>Get the status of a challenge.</p>
+<p><strong>Returns:</strong> <code>{ exists, expired, solved, attempts, maxAttempts, type, brand }</code></p>
+<pre><code class="lang-javascript">const status = captcha.getChallengeStatus(challenge.id);
+// { exists: <span class="hljs-literal">true</span>, expired: <span class="hljs-literal">false</span>, solved: <span class="hljs-literal">false</span>, attempts: <span class="hljs-number">1</span>, maxAttempts: <span class="hljs-number">3</span>, <span class="hljs-keyword">type</span>: <span class="hljs-symbol">'math</span>' }
+</code></pre>
+<hr>
+<h3 id="-captcha-invalidatechallenge-challengeid-"><code>captcha.invalidateChallenge(challengeId)</code></h3>
+<p>Manually invalidate a challenge.</p>
+<pre><code class="lang-javascript"><span class="hljs-selector-tag">captcha</span><span class="hljs-selector-class">.invalidateChallenge</span>(<span class="hljs-selector-tag">challenge</span><span class="hljs-selector-class">.id</span>);
+</code></pre>
+<hr>
+<h3 id="-captcha-getstats-"><code>captcha.getStats()</code></h3>
+<p>Get library statistics.</p>
+<p><strong>Returns:</strong> <code>{ activeChallenges, totalAttempts, brand, version }</code></p>
+<pre><code class="lang-javascript"><span class="hljs-keyword">const</span> stats = captcha.getStats()<span class="hljs-comment">;</span>
+// { activeChallenges: <span class="hljs-number">5</span>, totalAttempts: <span class="hljs-number">12</span>, brand: <span class="hljs-string">'VaultGuard™'</span>, version: <span class="hljs-string">'1.0.0'</span> }
+</code></pre>
+<hr>
+<h3 id="-captcha-reset-"><code>captcha.reset()</code></h3>
+<p>Reset all challenges and attempts.</p>
+<pre><code class="lang-javascript">captcha.reset()<span class="hljs-comment">;</span>
+</code></pre>
+<hr>
+<h3 id="-vaultguard-getversion-"><code>VaultGuard.getVersion()</code></h3>
+<p>Get version information.</p>
+<p><strong>Returns:</strong> <code>{ name, product, version, codename, fullVersion }</code></p>
+<pre><code class="lang-javascript">const version = VaultGuard.getVersion();
+<span class="hljs-regexp">//</span> {
+<span class="hljs-regexp">//</span>   name: <span class="hljs-string">'VaultGuard™'</span>,
+<span class="hljs-regexp">//</span>   product: <span class="hljs-string">'CAPTCHA'</span>,
+<span class="hljs-regexp">//</span>   version: <span class="hljs-string">'1.0.0'</span>,
+<span class="hljs-regexp">//</span>   codename: <span class="hljs-string">'Aegis'</span>,
+<span class="hljs-regexp">//</span>   fullVersion: <span class="hljs-string">'VaultGuard™ CAPTCHA v1.0.0 "Aegis"'</span>
+<span class="hljs-regexp">//</span> }
+</code></pre>
+<h2 id="-challenge-types">🎨 Challenge Types</h2>
+<p>VaultGuard supports 7 challenge types, all generated client-side with zero external requests:</p>
+<h3 id="math-challenges">Math Challenges</h3>
+<p>Simple arithmetic problems:</p>
+<ul>
+<li>Addition: <code>What is 12 + 5?</code></li>
+<li>Subtraction: <code>What is 30 - 15?</code></li>
+<li>Multiplication: <code>What is 7 × 8?</code></li>
+</ul>
+<h3 id="text-challenges">Text Challenges</h3>
+<p>Word manipulation tasks:</p>
+<ul>
+<li>Reverse: <code>Reverse this word: &quot;apple&quot;</code></li>
+<li>First letter: <code>What is the first letter of &quot;banana&quot;?</code></li>
+<li>Last letter: <code>What is the last letter of &quot;cherry&quot;?</code></li>
+<li>Letter count: <code>How many letters in &quot;dragon&quot;?</code></li>
+</ul>
+<h3 id="pattern-challenges">Pattern Challenges</h3>
+<p>Visual pattern completion:</p>
+<ul>
+<li><code>Complete the pattern: ○ ● □ ■ ___</code></li>
+</ul>
+<h3 id="image-puzzle-challenges">Image Puzzle Challenges</h3>
+<p>&quot;Select all X&quot; grid-based challenges with 9 real photographs. Users select all images matching a category (cars, traffic lights, crosswalks, etc.). Images are loaded from LoremFlickr with deterministic locking.</p>
+<h3 id="text-illusion-challenges-">Text Illusion Challenges ✨</h3>
+<p>A word is rendered onto an HTML5 Canvas using <code>globalCompositeOperation</code> masking, noise overlays, and distortion lines. The answer text is <strong>never present in the DOM</strong> — only as pixel data on the canvas. This makes it impossible for standard bots to scrape the answer via DOM traversal, and OCR requires full canvas rendering.</p>
+<p><strong>Security properties:</strong></p>
+<ul>
+<li>Answer is pixel data only — not in DOM, not in data attributes</li>
+<li>Canvas uses <code>willReadFrequently: false</code> to prevent read-back timing attacks</li>
+<li>Multiple composite operation layers resist simple image processing</li>
+<li>30 possible words, randomly selected</li>
+</ul>
+<h3 id="audio-challenges-">Audio Challenges ✨</h3>
+<p>Digits are synthesized entirely client-side using the Web Audio API — no audio files, no external requests. Uses DTMF-like dual-tone frequencies with added noise masking. An audio visualizer shows playback activity.</p>
+<p><strong>Security properties:</strong></p>
+<ul>
+<li>Zero network requests for audio data</li>
+<li>Uses <code>OfflineAudioContext</code> for deterministic rendering</li>
+<li>Noise masking at 18% level resists simple frequency analysis</li>
+<li>4-digit sequences from 10,000 possibilities</li>
+<li>No PII transmitted — fully GDPR Article 25 compliant</li>
+</ul>
+<p><strong>Browser support:</strong> Chrome 35+, Firefox 25+, Safari 14.1+, Edge 79+. Falls back gracefully — if Web Audio API is unavailable, VaultGuard selects a different challenge type.</p>
+<h3 id="visual-path-challenges-">Visual Path Challenges ✨</h3>
+<p>A curved path (wave, spiral, zigzag, or arc) is rendered on canvas. The user must trace from Start (S) to End (E) using mouse or touch. The system records pointer coordinates, timing, and velocity for behavioral analysis.</p>
+<p><strong>Verification criteria:</strong></p>
+<ul>
+<li><strong>Path coverage</strong>: ≥75% of the path must be traced within tolerance</li>
+<li><strong>Velocity variance</strong>: Human hand tremor produces natural speed variation (CV ≥ 0.05)</li>
+<li><strong>Direction changes</strong>: Natural tracing has frequent micro-direction changes (rate ≥ 2%)</li>
+<li><strong>Timing</strong>: Minimum duration based on point count prevents instant submission</li>
+<li><strong>Point density</strong>: Minimum 20 trace points required</li>
+</ul>
+<p><strong>Security properties:</strong></p>
+<ul>
+<li>Path geometry is verified client-side with behavioral analysis</li>
+<li>Bot-nets struggle to mimic natural human hand tremor and acceleration curves</li>
+<li><code>Object.freeze()</code> on path data prevents accidental mutation</li>
+<li>Touch and pointer events supported for mobile accessibility</li>
+</ul>
+<h2 id="-configuration-examples">⚙️ Configuration Examples</h2>
+<h3 id="basic-setup">Basic Setup</h3>
+<pre><code class="lang-javascript"><span class="hljs-keyword">const</span> captcha = <span class="hljs-keyword">new</span> VaultGuard.Captcha();
+</code></pre>
+<h3 id="high-security">High Security</h3>
+<pre><code class="lang-javascript">const captcha = new VaultGuard.Captcha({
+  difficulty: <span class="hljs-string">'hard'</span>,
+  expiryTime: 180000,
+  maxAttempts: 2,
+  challengeTypes: [<span class="hljs-string">'textIllusion'</span>, <span class="hljs-string">'visualPath'</span>, <span class="hljs-string">'audio'</span>],
+  <span class="hljs-built_in">enable</span>BotDetection: <span class="hljs-literal">true</span>,
+  <span class="hljs-built_in">enable</span>CSRF: <span class="hljs-literal">true</span>,
+  <span class="hljs-built_in">enable</span>FingerprintBinding: <span class="hljs-literal">true</span>
+});
+</code></pre>
+<h3 id="accessibility-focused">Accessibility-Focused</h3>
+<pre><code class="lang-javascript"><span class="hljs-keyword">const</span> captcha = <span class="hljs-keyword">new</span> VaultGuard.Captcha({
+  challengeTypes: [<span class="hljs-string">'audio'</span>, <span class="hljs-string">'math'</span>],
+  <span class="hljs-comment">// Audio for visually impaired users, math as fallback</span>
+});
+</code></pre>
+<h3 id="maximum-bot-resistance">Maximum Bot Resistance</h3>
+<pre><code class="lang-javascript">const captcha = new VaultGuard.Captcha({
+  challengeTypes: [<span class="hljs-string">'visualPath'</span>, <span class="hljs-string">'textIllusion'</span>, <span class="hljs-string">'audio'</span>, <span class="hljs-string">'imagePuzzle'</span>],
+  <span class="hljs-built_in">enable</span>BotDetection: <span class="hljs-literal">true</span>,
+  botScoreThreshold: 0.3,
+  <span class="hljs-built_in">enable</span>Honeypot: <span class="hljs-literal">true</span>,
+  <span class="hljs-built_in">enable</span>FingerprintBinding: <span class="hljs-literal">true</span>
+});
+</code></pre>
+<h2 id="-security-features">🔐 Security Features</h2>
+<h3 id="core-captcha-security">Core CAPTCHA Security</h3>
+<ul>
+<li><strong>SHA-256 Hashing</strong>: Answers are hashed with unique salts</li>
+<li><strong>Time-Limited Challenges</strong>: Automatic expiry prevents replay attacks</li>
+<li><strong>Attempt Limiting</strong>: Configurable maximum attempts prevent brute force</li>
+<li><strong>Secure Random</strong>: Cryptographically secure random number generation</li>
+<li><strong>No Answer Storage</strong>: Answers are never stored in plain text</li>
+</ul>
+<h3 id="anti-bot-anti-automation-detection">Anti-Bot / Anti-Automation Detection</h3>
+<p>Behavioral analysis distinguishes humans from automated scripts by monitoring mouse movement patterns, keystroke dynamics, touch events, and timing anomalies. Honeypot fields (invisible to humans) catch bots that blindly fill all form inputs.</p>
+<pre><code class="lang-javascript"><span class="hljs-keyword">const</span> captcha = <span class="hljs-keyword">new</span> VaultGuard.Captcha({
+  enableBotDetection: <span class="hljs-literal">true</span>,
+  botScoreThreshold: <span class="hljs-number">0.5</span>  <span class="hljs-comment">// 0.0 = lenient, 1.0 = strict</span>
+});
+</code></pre>
+<p><strong>Detection heuristics:</strong></p>
+<ul>
+<li>Zero mouse movements with form submission</li>
+<li>Perfectly linear mouse trajectories (bots move in straight lines)</li>
+<li>Keystroke intervals with very low variance (machine-like uniformity)</li>
+<li>Submission faster than a human could read and answer</li>
+<li>No touch events on touch-capable devices</li>
+</ul>
+<h3 id="csrf-protection">CSRF Protection</h3>
+<p>Cryptographically random tokens bound to each session with constant-time comparison to prevent timing attacks. Tokens expire after 1 hour.</p>
+<pre><code class="lang-javascript"><span class="hljs-keyword">const</span> captcha = <span class="hljs-keyword">new</span> VaultGuard.Captcha({
+  enableCSRF: <span class="hljs-literal">true</span>
+});
+</code></pre>
+<h3 id="session-hijack-protection">Session Hijack Protection</h3>
+<p>Browser fingerprinting via canvas rendering and navigator properties binds each challenge to the browser session. Stolen tokens are useless from a different browser or device.</p>
+<pre><code class="lang-javascript"><span class="hljs-keyword">const</span> captcha = <span class="hljs-keyword">new</span> VaultGuard.Captcha({
+  enableFingerprintBinding: <span class="hljs-literal">true</span>
+});
+</code></pre>
+<h3 id="honeypot-fields">Honeypot Fields</h3>
+<p>Invisible form fields that bots fill out but humans cannot see. Any filled honeypot field immediately flags the submission as automated.</p>
+<pre><code class="lang-javascript"><span class="hljs-keyword">const</span> captcha = <span class="hljs-keyword">new</span> VaultGuard.Captcha({
+  enableHoneypot: <span class="hljs-literal">true</span>
+});
+</code></pre>
+<hr>
+<h2 id="-web-protection-features">🛡️ Web Protection Features</h2>
+<p>The <code>VaultGuard.Security</code> module provides client-side protections against common web attacks. Initialize via the <code>security</code> option in <code>quickSetup</code>:</p>
+<pre><code class="lang-javascript">VaultGuard.quickSetup(<span class="hljs-string">'captcha-container'</span>, {
+  security: {
+    <span class="hljs-built_in">enable</span>BehavioralTracking: <span class="hljs-literal">true</span>,
+    <span class="hljs-built_in">enable</span>FrameBusting: <span class="hljs-literal">true</span>,
+    <span class="hljs-built_in">enable</span>TabnappingProtection: <span class="hljs-literal">true</span>,
+    <span class="hljs-built_in">enable</span>ExtensionDetection: <span class="hljs-literal">true</span>,
+    <span class="hljs-built_in">enable</span>CSP: <span class="hljs-literal">true</span>,
+    <span class="hljs-built_in">enable</span>SecurityMetas: <span class="hljs-literal">true</span>
+  }
+});
+</code></pre>
+<h3 id="xss-protection">XSS Protection</h3>
+<p>Input sanitization encodes HTML entities, neutralizes <code>javascript:</code> and <code>data:</code> URI schemes, and strips event handler patterns. Content Security Policy meta tags restrict resource loading.</p>
+<pre><code class="lang-javascript"><span class="hljs-comment">// Sanitize user input</span>
+<span class="hljs-keyword">const</span> safe = VaultGuard.Security.sanitizeInput(userInput);
+
+<span class="hljs-comment">// Safely set text on an element</span>
+VaultGuard.Security.safeSetText(element, userInput);
+
+<span class="hljs-comment">// Generate CSP header value</span>
+<span class="hljs-keyword">const</span> csp = VaultGuard.Security.generateCSP({
+  <span class="hljs-string">'script-src'</span>: [<span class="hljs-string">"'self'"</span>, <span class="hljs-string">"'nonce-abc123'"</span>]
+});
+</code></pre>
+<h3 id="clickjacking-protection">Clickjacking Protection</h3>
+<p>Frame-busting JavaScript prevents the page from being loaded in iframes. MutationObserver monitors for injected untrusted iframe elements and removes them.</p>
+<pre><code class="lang-javascript"><span class="hljs-selector-tag">VaultGuard</span><span class="hljs-selector-class">.Security</span><span class="hljs-selector-class">.injectFrameBuster</span>();
+
+<span class="hljs-comment">// Recommended server header</span>
+<span class="hljs-comment">// X-Frame-Options: DENY</span>
+</code></pre>
+<h3 id="tabnapping-protection">Tabnapping Protection</h3>
+<p>Clears <code>window.opener</code> references, sets strict referrer policy, and wraps <code>window.open</code> to add <code>noopener</code>/<code>noreferrer</code> to external links.</p>
+<pre><code class="lang-javascript"><span class="hljs-selector-tag">VaultGuard</span><span class="hljs-selector-class">.Security</span><span class="hljs-selector-class">.protectAgainstTabnapping</span>();
+<span class="hljs-selector-tag">VaultGuard</span><span class="hljs-selector-class">.Security</span><span class="hljs-selector-class">.secureExternalLinks</span>();
+</code></pre>
+<h3 id="rogue-extension-detection">Rogue Extension Detection</h3>
+<p>Scans for suspicious DOM modifications, injected scripts from unknown sources, and unexpected global variables commonly injected by malicious browser extensions.</p>
+<pre><code class="lang-javascript">const result = VaultGuard.Security.detectRogueExtensions();
+<span class="hljs-regexp">//</span> {
+<span class="hljs-regexp">//</span>   detected: true,
+<span class="hljs-regexp">//</span>   findings: [
+<span class="hljs-regexp">//</span>     { type: <span class="hljs-string">'external_script'</span>, src: <span class="hljs-string">'https://evil.com/inject.js'</span>, severity: <span class="hljs-string">'high'</span> },
+<span class="hljs-regexp">//</span>     { type: <span class="hljs-string">'suspicious_globals'</span>, globals: [<span class="hljs-string">'__phantom'</span>], severity: <span class="hljs-string">'medium'</span> }
+<span class="hljs-regexp">//</span>   ],
+<span class="hljs-regexp">//</span>   riskLevel: <span class="hljs-string">'high'</span>
+<span class="hljs-regexp">//</span> }
+</code></pre>
+<h3 id="security-headers">Security Headers</h3>
+<p>Generates recommended HTTP headers. These should be configured on the server side:</p>
+<pre><code class="lang-javascript">const headers = VaultGuard.Security.getRecommendedHeaders();
+<span class="hljs-regexp">//</span> {
+<span class="hljs-regexp">//</span>   <span class="hljs-string">'X-Content-Type-Options'</span>: <span class="hljs-string">'nosniff'</span>,
+<span class="hljs-regexp">//</span>   <span class="hljs-string">'X-Frame-Options'</span>: <span class="hljs-string">'DENY'</span>,
+<span class="hljs-regexp">//</span>   <span class="hljs-string">'X-XSS-Protection'</span>: <span class="hljs-string">'1; mode=block'</span>,
+<span class="hljs-regexp">//</span>   <span class="hljs-string">'Referrer-Policy'</span>: <span class="hljs-string">'strict-origin-when-cross-origin'</span>,
+<span class="hljs-regexp">//</span>   <span class="hljs-string">'Permissions-Policy'</span>: <span class="hljs-string">'camera=(), microphone=(), geolocation=(), payment=()'</span>,
+<span class="hljs-regexp">//</span>   <span class="hljs-string">'Strict-Transport-Security'</span>: <span class="hljs-string">'max-age=31536000; includeSubDomains'</span>,
+<span class="hljs-regexp">//</span>   <span class="hljs-string">'Content-Security-Policy'</span>: <span class="hljs-string">"default-src 'self'; ..."</span>
+<span class="hljs-regexp">//</span> }
+</code></pre>
+<h3 id="security-module-api-reference">Security Module API Reference</h3>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Security.init(options)</code></td>
+<td>Initialize all client-side protections</td>
+</tr>
+<tr>
+<td><code>Security.initBehavioralTracking()</code></td>
+<td>Start monitoring mouse/key/touch events</td>
+</tr>
+<tr>
+<td><code>Security.analyzeBehavior()</code></td>
+<td>Returns <code>{ score, signals, isBot }</code></td>
+</tr>
+<tr>
+<td><code>Security.deployHoneypot(form)</code></td>
+<td>Add invisible honeypot fields to a form</td>
+</tr>
+<tr>
+<td><code>Security.checkHoneypot(form)</code></td>
+<td>Returns <code>true</code> if a honeypot was filled</td>
+</tr>
+<tr>
+<td><code>Security.sanitizeInput(input)</code></td>
+<td>XSS-safe encoding of user input</td>
+</tr>
+<tr>
+<td><code>Security.safeSetText(el, text)</code></td>
+<td>Safe DOM text insertion</td>
+</tr>
+<tr>
+<td><code>Security.generateCSP(rules)</code></td>
+<td>Generate CSP header value</td>
+</tr>
+<tr>
+<td><code>Security.injectCSPMeta()</code></td>
+<td>Inject CSP meta tag</td>
+</tr>
+<tr>
+<td><code>Security.generateCSRFToken()</code></td>
+<td>Create session-bound CSRF token</td>
+</tr>
+<tr>
+<td><code>Security.validateCSRFToken(token)</code></td>
+<td>Validate a CSRF token</td>
+</tr>
+<tr>
+<td><code>Security.injectCSRFField(form)</code></td>
+<td>Add hidden CSRF field to form</td>
+</tr>
+<tr>
+<td><code>Security.injectFrameBuster()</code></td>
+<td>Frame-breaking + iframe detection</td>
+</tr>
+<tr>
+<td><code>Security.generateFingerprint()</code></td>
+<td>Browser fingerprint hash</td>
+</tr>
+<tr>
+<td><code>Security.verifyFingerprint(fp)</code></td>
+<td>Verify fingerprint matches</td>
+</tr>
+<tr>
+<td><code>Security.bindChallengeToSession(id)</code></td>
+<td>Bind challenge to fingerprint</td>
+</tr>
+<tr>
+<td><code>Security.verifyChallengeSession(id)</code></td>
+<td>Verify challenge session binding</td>
+</tr>
+<tr>
+<td><code>Security.protectAgainstTabnapping()</code></td>
+<td>Clear opener, set referrer policy</td>
+</tr>
+<tr>
+<td><code>Security.secureExternalLinks()</code></td>
+<td>Add noopener/noreferrer to links</td>
+</tr>
+<tr>
+<td><code>Security.detectRogueExtensions()</code></td>
+<td>Scan for malicious extensions</td>
+</tr>
+<tr>
+<td><code>Security.getRecommendedHeaders()</code></td>
+<td>Get recommended HTTP headers</td>
+</tr>
+<tr>
+<td><code>Security.injectSecurityMetas()</code></td>
+<td>Inject security meta tags</td>
+</tr>
+</tbody>
+</table>
+<h2 id="-privacy-features">🛡️ Privacy Features</h2>
+<ul>
+<li><strong>Zero Tracking</strong>: No fingerprinting or user tracking</li>
+<li><strong>No Cookies</strong>: No cookies are set or read</li>
+<li><strong>No External Requests</strong>: All processing happens locally</li>
+<li><strong>No Data Collection</strong>: No personal data is collected or stored</li>
+<li><strong>Self-Contained</strong>: No external dependencies or CDN requests</li>
+</ul>
+<h2 id="-browser-support">🌐 Browser Support</h2>
+<ul>
+<li>Chrome 60+</li>
+<li>Firefox 55+</li>
+<li>Safari 11+</li>
+<li>Edge 79+</li>
+<li>Opera 47+</li>
+</ul>
+<p><strong>Note:</strong> Requires Web Crypto API support (all modern browsers).</p>
+<h2 id="-license">📄 License</h2>
+<p>MIT License - see <a href="LICENSE">LICENSE</a> file for details.</p>
+<pre><code>Copyright 2024 VaultGuard Technologies
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to <span class="hljs-keyword">use</span>, copy, <span class="hljs-keyword">modify</span>, <span class="hljs-keyword">merge</span>, publish, <span class="hljs-keyword">distribute</span>, sublicense, <span class="hljs-keyword">and</span>/<span class="hljs-keyword">or</span> sell
+copies <span class="hljs-keyword">of</span> the Software, <span class="hljs-keyword">and</span> <span class="hljs-keyword">to</span> permit persons <span class="hljs-keyword">to</span> whom the Software <span class="hljs-keyword">is</span>
+furnished <span class="hljs-keyword">to</span> <span class="hljs-keyword">do</span> so, subject <span class="hljs-keyword">to</span> the <span class="hljs-keyword">following</span> conditions:
+
+The above copyright <span class="hljs-keyword">notice</span> <span class="hljs-keyword">and</span> this permission <span class="hljs-keyword">notice</span> shall be included <span class="hljs-keyword">in</span> all
+copies <span class="hljs-keyword">or</span> substantial portions <span class="hljs-keyword">of</span> the Software.
+
+THE SOFTWARE <span class="hljs-keyword">IS</span> PROVIDED <span class="hljs-string">"AS IS"</span>, <span class="hljs-keyword">WITHOUT</span> WARRANTY <span class="hljs-keyword">OF</span> <span class="hljs-keyword">ANY</span> KIND, EXPRESS <span class="hljs-keyword">OR</span>
+IMPLIED, <span class="hljs-keyword">INCLUDING</span> BUT <span class="hljs-keyword">NOT</span> LIMITED <span class="hljs-keyword">TO</span> THE WARRANTIES <span class="hljs-keyword">OF</span> MERCHANTABILITY,
+FITNESS <span class="hljs-keyword">FOR</span> A PARTICULAR PURPOSE <span class="hljs-keyword">AND</span> NONINFRINGEMENT. <span class="hljs-keyword">IN</span> <span class="hljs-keyword">NO</span> <span class="hljs-keyword">EVENT</span> SHALL THE
+<span class="hljs-keyword">AUTHORS</span> <span class="hljs-keyword">OR</span> COPYRIGHT HOLDERS BE LIABLE <span class="hljs-keyword">FOR</span> <span class="hljs-keyword">ANY</span> CLAIM, DAMAGES <span class="hljs-keyword">OR</span> OTHER
+LIABILITY, WHETHER <span class="hljs-keyword">IN</span> AN <span class="hljs-keyword">ACTION</span> <span class="hljs-keyword">OF</span> CONTRACT, TORT <span class="hljs-keyword">OR</span> OTHERWISE, ARISING <span class="hljs-keyword">FROM</span>,
+<span class="hljs-keyword">OUT</span> <span class="hljs-keyword">OF</span> <span class="hljs-keyword">OR</span> <span class="hljs-keyword">IN</span> <span class="hljs-keyword">CONNECTION</span> <span class="hljs-keyword">WITH</span> THE SOFTWARE <span class="hljs-keyword">OR</span> THE <span class="hljs-keyword">USE</span> <span class="hljs-keyword">OR</span> OTHER DEALINGS <span class="hljs-keyword">IN</span> THE
+SOFTWARE.
+</code></pre><h2 id="-hooks-system">🪝 Hooks System</h2>
+<p>VaultGuard includes a built-in hooks system for extending behavior at key lifecycle points. All hooks are optional, fire asynchronously, and errors are caught so they never break the CAPTCHA flow.</p>
+<h3 id="available-hooks">Available Hooks</h3>
+<table>
+<thead>
+<tr>
+<th>Hook</th>
+<th>Fired When</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>onChallengeGenerated</code></td>
+<td>A new challenge is created</td>
+</tr>
+<tr>
+<td><code>onChallengeExpired</code></td>
+<td>A challenge expires before being solved</td>
+</tr>
+<tr>
+<td><code>onClientVerified</code></td>
+<td>Client-side verification passes (Gate 1)</td>
+</tr>
+<tr>
+<td><code>onServerVerified</code></td>
+<td>Server-side verification passes (Gate 2)</td>
+</tr>
+<tr>
+<td><code>onServerRejected</code></td>
+<td>Server rejects a client-verified challenge</td>
+</tr>
+<tr>
+<td><code>onSecurityFlag</code></td>
+<td>Any security check triggers a flag</td>
+</tr>
+<tr>
+<td><code>onBotDetected</code></td>
+<td>Behavioral analysis flags a bot</td>
+</tr>
+<tr>
+<td><code>onHoneypotTriggered</code></td>
+<td>A honeypot field is filled</td>
+</tr>
+<tr>
+<td><code>onCSRFInvalid</code></td>
+<td>CSRF validation fails</td>
+</tr>
+<tr>
+<td><code>onFingerprintMismatch</code></td>
+<td>Browser fingerprint doesn&#39;t match</td>
+</tr>
+<tr>
+<td><code>onImageLoadFailed</code></td>
+<td>An image puzzle image fails to load</td>
+</tr>
+<tr>
+<td><code>onImageRetry</code></td>
+<td>An image puzzle retries loading</td>
+</tr>
+<tr>
+<td><code>onMaxAttemptsExceeded</code></td>
+<td>Max attempts are exceeded</td>
+</tr>
+<tr>
+<td><code>onSuccess</code></td>
+<td>Fully verified success (both gates passed)</td>
+</tr>
+<tr>
+<td><code>onError</code></td>
+<td>Any verification error</td>
+</tr>
+</tbody>
+</table>
+<h3 id="basic-usage">Basic Usage</h3>
+<pre><code class="lang-javascript">const hooks = <span class="hljs-keyword">new</span> VaultGuard.Hooks();
+
+hooks.<span class="hljs-literal">on</span>(<span class="hljs-string">'onBotDetected'</span>, <span class="hljs-function"><span class="hljs-params">(data)</span> =&gt;</span> {
+  <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'Bot detected! Score:'</span>, data.score);
+  <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'Signals:'</span>, data.signals);
+});
+
+hooks.<span class="hljs-literal">on</span>(<span class="hljs-string">'onHoneypotTriggered'</span>, <span class="hljs-function"><span class="hljs-params">(data)</span> =&gt;</span> {
+  <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'Honeypot triggered for challenge:'</span>, data.challengeId);
+});
+
+hooks.<span class="hljs-literal">on</span>(<span class="hljs-string">'onSuccess'</span>, <span class="hljs-function"><span class="hljs-params">(data)</span> =&gt;</span> {
+  <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'Verified! Server gate:'</span>, data.serverVerified);
+});
+
+hooks.<span class="hljs-literal">on</span>(<span class="hljs-string">'onError'</span>, <span class="hljs-function"><span class="hljs-params">(data)</span> =&gt;</span> {
+  <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'Error:'</span>, data.error);
+});
+
+<span class="hljs-regexp">//</span> Attach to captcha instance
+const captcha = <span class="hljs-keyword">new</span> VaultGuard.Captcha({ hooks });
+</code></pre>
+<h3 id="global-handler">Global Handler</h3>
+<p>Listen to all hook events:</p>
+<pre><code class="lang-javascript"><span class="hljs-keyword">const</span> hooks = <span class="hljs-keyword">new</span> VaultGuard.Hooks();
+
+hooks.onAny(<span class="hljs-function">(<span class="hljs-params">data</span>) =&gt;</span> {
+  <span class="hljs-built_in">console</span>.log(<span class="hljs-string">`[<span class="hljs-subst">${data.event}</span>]`</span>, data);
+});
+</code></pre>
+<h3 id="chaining">Chaining</h3>
+<pre><code class="lang-javascript"><span class="hljs-keyword">const</span> hooks = <span class="hljs-keyword">new</span> VaultGuard.Hooks()
+  .<span class="hljs-keyword">on</span>(<span class="hljs-string">'onBotDetected'</span>, handleBot)
+  .<span class="hljs-keyword">on</span>(<span class="hljs-string">'onSuccess'</span>, handleSuccess)
+  .<span class="hljs-keyword">on</span>(<span class="hljs-string">'onError'</span>, handleError);
+</code></pre>
+<hr>
+<h2 id="-double-gate-validation-server-extension-">🔄 Double-Gate Validation (Server Extension)</h2>
+<p>VaultGuard works <strong>fully serverless by default</strong>. For enhanced security, the optional <code>ServerExtension</code> adds a second validation gate:</p>
+<ul>
+<li><strong>Gate 1 (Client)</strong>: Challenge is generated and verified locally in the browser</li>
+<li><strong>Gate 2 (Server)</strong>: The server independently re-verifies the challenge answer</li>
+</ul>
+<p>This prevents attackers from bypassing client-side validation, as the server performs its own verification.</p>
+<h3 id="setup">Setup</h3>
+<pre><code class="lang-javascript"><span class="hljs-regexp">//</span> <span class="hljs-number">1.</span> Create captcha instance
+const captcha = <span class="hljs-keyword">new</span> VaultGuard.Captcha({
+  expiryTime: <span class="hljs-number">300000</span>,
+  maxAttempts: <span class="hljs-number">3</span>
+});
+
+<span class="hljs-regexp">//</span> <span class="hljs-number">2.</span> Create server extension
+const server = <span class="hljs-keyword">new</span> VaultGuard.ServerExtension({
+  endpoint: <span class="hljs-string">'/api/vaultguard'</span>,
+  secret: <span class="hljs-string">'your-server-secret'</span>,
+  timeout: <span class="hljs-number">10000</span>,
+  retries: <span class="hljs-number">2</span>
+});
+
+<span class="hljs-regexp">//</span> <span class="hljs-number">3.</span> Attach to captcha (<span class="hljs-keyword">this</span> wraps verifyAnswer with Double-Gate)
+server.attach(captcha);
+
+<span class="hljs-regexp">//</span> <span class="hljs-number">4.</span> Optionally attach hooks
+const hooks = <span class="hljs-keyword">new</span> VaultGuard.Hooks();
+hooks.<span class="hljs-literal">on</span>(<span class="hljs-string">'onServerVerified'</span>, <span class="hljs-function"><span class="hljs-params">(data)</span> =&gt;</span> {
+  <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'Both gates passed!'</span>);
+});
+hooks.<span class="hljs-literal">on</span>(<span class="hljs-string">'onServerRejected'</span>, <span class="hljs-function"><span class="hljs-params">(data)</span> =&gt;</span> {
+  <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'Server rejected:'</span>, data.error);
+});
+server.setHooks(hooks);
+</code></pre>
+<h3 id="server-endpoint-contract">Server Endpoint Contract</h3>
+<p>Your server endpoint receives:</p>
+<pre><code class="lang-json">{
+  <span class="hljs-attr">"challengeId"</span>: <span class="hljs-string">"abc123..."</span>,
+  <span class="hljs-attr">"answer"</span>: <span class="hljs-string">"42"</span>,
+  <span class="hljs-attr">"clientToken"</span>: <span class="hljs-string">"sha256hash..."</span>,
+  <span class="hljs-attr">"fingerprint"</span>: <span class="hljs-string">"browser-fingerprint-hash"</span>,
+  <span class="hljs-attr">"timestamp"</span>: <span class="hljs-number">1234567890</span>
+}
+</code></pre>
+<p>Your server responds:</p>
+<pre><code class="lang-json"><span class="hljs-comment">// Success</span>
+{ <span class="hljs-string">"valid"</span>: <span class="hljs-literal">true</span>, <span class="hljs-string">"serverToken"</span>: <span class="hljs-string">"optional-token-for-client"</span> }
+
+<span class="hljs-comment">// Rejection</span>
+{ <span class="hljs-string">"valid"</span>: <span class="hljs-literal">false</span>, <span class="hljs-string">"error"</span>: <span class="hljs-string">"Reason for rejection"</span> }
+</code></pre>
+<h3 id="server-extension-options">Server Extension Options</h3>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>endpoint</code></td>
+<td>string</td>
+<td><code>/api/vaultguard</code></td>
+<td>Server verification endpoint</td>
+</tr>
+<tr>
+<td><code>secret</code></td>
+<td>string</td>
+<td><code>&#39;&#39;</code></td>
+<td>Shared secret for server communication</td>
+</tr>
+<tr>
+<td><code>timeout</code></td>
+<td>number</td>
+<td><code>10000</code></td>
+<td>Request timeout in ms</td>
+</tr>
+<tr>
+<td><code>retries</code></td>
+<td>number</td>
+<td><code>2</code></td>
+<td>Number of retry attempts</td>
+</tr>
+<tr>
+<td><code>retryDelay</code></td>
+<td>number</td>
+<td><code>1000</code></td>
+<td>Delay between retries (ms)</td>
+</tr>
+<tr>
+<td><code>enabled</code></td>
+<td>boolean</td>
+<td><code>true</code></td>
+<td>Enable/disable server verification</td>
+</tr>
+<tr>
+<td><code>hooks</code></td>
+<td>Hooks</td>
+<td><code>null</code></td>
+<td>VaultGuard Hooks instance</td>
+</tr>
+<tr>
+<td><code>onServerVerified</code></td>
+<td>function</td>
+<td><code>null</code></td>
+<td>Legacy callback for server verification</td>
+</tr>
+<tr>
+<td><code>onServerError</code></td>
+<td>function</td>
+<td><code>null</code></td>
+<td>Legacy callback for server errors</td>
+</tr>
+</tbody>
+</table>
+<h3 id="disabling-server-gate">Disabling Server Gate</h3>
+<pre><code class="lang-javascript"><span class="hljs-comment">// Temporarily disable (falls back to client-only)</span>
+<span class="hljs-keyword">server</span>.disable();
+
+<span class="hljs-comment">// Re-enable</span>
+<span class="hljs-keyword">server</span>.enable();
+
+<span class="hljs-comment">// Check status</span>
+<span class="hljs-keyword">server</span>.isEnabled(); <span class="hljs-comment">// true/false</span>
+</code></pre>
+<h3 id="error-handling">Error Handling</h3>
+<p>When the server is unreachable after all retries, the verification fails with <code>securityFlag: &#39;server_rejected&#39;</code>. Your hook or callback can handle this gracefully:</p>
+<pre><code class="lang-javascript">hooks.<span class="hljs-literal">on</span>(<span class="hljs-string">'onServerRejected'</span>, <span class="hljs-function"><span class="hljs-params">(data)</span> =&gt;</span> {
+  <span class="hljs-keyword">if</span> (data.error.includes(<span class="hljs-string">'unavailable'</span>)) {
+    <span class="hljs-regexp">//</span> Server <span class="hljs-keyword">is</span> down — optionally allow client-only verification
+    <span class="hljs-built_in">console</span>.warn(<span class="hljs-string">'Server verification unavailable'</span>);
+  }
+});
+</code></pre>
+<hr>
+<h2 id="-links">🔗 Links</h2>
+<ul>
+<li><strong>Website</strong>: <a href="https://everythingtt.github.io/Utilities/dist/captcha/">https://everythingtt.github.io/Utilities/dist/captcha/</a></li>
+<li><strong>Documentation</strong>: <a href="https://github.com/everythingtt/Utilities">https://github.com/everythingtt/Utilities</a></li>
+<li><strong>GitHub</strong>: <a href="https://github.com/everythingtt/Utilities">https://github.com/everythingtt/Utilities</a></li>
+<li><strong>Issues</strong>: <a href="https://github.com/everythingtt/Utilities/issues">https://github.com/everythingtt/Utilities/issues</a></li>
+</ul>
+<h2 id="-contributing">🤝 Contributing</h2>
+<p>Contributions are welcome! Please read our <a href="CONTRIBUTING.md">Contributing Guide</a> for details.</p>
+<h2 id="-contact">📧 Contact</h2>
+<ul>
+<li><strong>GitHub</strong>: <a href="https://github.com/everythingtt/Utilities">https://github.com/everythingtt/Utilities</a></li>
+<li><strong>Twitter</strong>: <a href="https://twitter.com/VaultGuardCaptcha">@VaultGuardCaptcha</a></li>
+</ul>
+<hr>
+<p align="center">
+  <strong>Protected by VaultGuard™ CAPTCHA</strong><br>
+  <em>Privacy-First • Zero Tracking • Cryptographically Secure</em>
+</p>
