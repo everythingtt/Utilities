@@ -1166,13 +1166,15 @@
       });
 
     // Initialize the CAPTCHA demo with security features and hooks
+    // For production, add serverUrl to enable server-side challenge generation:
+    //   serverUrl: '/api/vaultguard'
+    // This makes the server the source of truth for challenge answers.
     VaultGuard.quickSetup('captcha-container', {
       captcha: {
         expiryTime: 300000,
         maxAttempts: 3,
         enableBotDetection: true,
         enableCSRF: true,
-        enableFingerprintBinding: true,
         enableHoneypot: true,
         botScoreThreshold: 0.5,
         hooks: demoHooks

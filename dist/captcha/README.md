@@ -8,7 +8,7 @@
 ║    ╚████╔╝ ██║  ██║╚██████╔╝███████╗██║   ╚██████╔╝╚██████╔╝██║  ██║██║  ██║██████╔╝ ║
 ║     ╚═══╝  ╚═╝  ╚═╝ ╚═════╝ ╚══════╝╚═╝    ╚═════╝  ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═════╝  ║
 ║                                                                             ║
-║                    🛡️  VAULTGUARD™ CAPTCHA v1.0.0  🛡️                      ║
+║                    🛡️  VAULTGUARD™ CAPTCHA v2.0.0  🛡️                      ║
 ║                                                                             ║
 ║   Privacy-First • Zero Tracking • Cryptographically Secure                  ║
 ║                                                                             ║
@@ -17,29 +17,93 @@
 
 # VaultGuard™ CAPTCHA
 
-**A privacy-first, cryptographically secure CAPTCHA solution in a single file.**
+**A privacy-first, cryptographically secure CAPTCHA solution with client-server architecture.**
 
-[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/everythingtt/Utilities)
+[![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)](https://github.com/everythingtt/Utilities)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/everythingtt/Utilities/blob/main/LICENSE)
 [![Privacy](https://img.shields.io/badge/privacy-zero%20tracking-brightgreen.svg)](https://everythingtt.github.io/Utilities/dist/captcha/privacy.html)
 
 ## ✨ Features
 
-- 🔒 **Cryptographic Security** - SHA-256 hashing with secret salts
-- 👁️ **Zero Tracking** - No fingerprinting, cookies, or user tracking
-- 🚫 **No Dependencies** - Completely self-contained
+- 🔒 **Server-Side Answer Validation** - The server is the source of truth for challenge answers. Answers never leave the server.
+- 👁️ **Zero Tracking** - No canvas fingerprinting, cookies, or user tracking
+- 🚫 **No Client Dependencies** - Completely self-contained (server uses Node.js built-ins)
 - ⏱️ **Time-Limited Challenges** - Configurable expiry (default 5 minutes)
 - 🎯 **7 Challenge Types** - Math, text, pattern, image puzzle, text illusion, audio, and visual path
 - 🎨 **Beautiful Branded UI** - Professional, accessible design
-- 📦 **Single File** - Easy to deploy and integrate
-- 🤖 **Anti-Bot Detection** - Behavioral analysis, honeypot fields, timing checks
-- 🛡️ **Web Attack Protection** - XSS, CSRF, clickjacking, session hijack, tabnapping
+- 📦 **Single File Client** - Easy to deploy and integrate
+- 🤖 **Anti-Bot Detection** - Behavioral analysis with trust scoring, honeypot fields, timing checks
+- 🛡️ **Web Attack Protection** - XSS sanitization, CSRF tokens, clickjacking protection, tabnapping defense
 - 🔍 **Rogue Extension Detection** - Scans for malicious browser extensions
 - 🔐 **Security Headers** - CSP generation, recommended HTTP headers
+- 🔄 **Double-Gate Validation** - Client-side (Gate 1) + Server-side (Gate 2) verification
+- 📊 **Trust Scoring** - Behavioral signals sent to server for risk assessment
+- 🔌 **Pluggable Storage** - Memory store (dev) or Redis store (production)
 
 ## 🚀 Quick Start
 
-### Browser (CDN)
+### 🏗️ Architecture (v2.0)
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    VAULTGUARD™ v2.0                         │
+│                                                             │
+│  ┌──────────┐    POST /challenge     ┌──────────────────┐  │
+│  │          │ ──────────────────────► │                  │  │
+│  │  Client  │    { id, question }     │  Server          │  │
+│  │          │ ◄────────────────────── │  (Source of      │  │
+│  │  captcha │                         │   Truth)         │  │
+│  │  .js     │    POST /verify         │                  │  │
+│  │          │ ──────────────────────► │  vaultguard-     │  │
+│  │          │  { id, answer }         │  server.js       │  │
+│  │          │ ◄────────────────────── │                  │  │
+│  │          │  { verified, score }    │  Memory / Redis  │  │
+│  └──────────┘                         └──────────────────┘  │
+│                                                             │
+│  Gate 1: Client-side security (honeypot, behavioral, CSRF)  │
+│  Gate 2: Server-side answer validation (source of truth)    │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Server Setup (Required for Production)
+
+```bash
+npm install express express-session
+# For production: npm install redis
+```
+
+```javascript
+// server.js
+const express = require('express');
+const vaultGuard = require('./vaultguard-server');
+
+const app = express();
+app.use(express.json());
+
+// VaultGuard middleware — adds req.vaultGuard methods
+app.use(vaultGuard.middleware({
+  secret: 'your-secret-key',
+  ttl: 300000,
+  // redis: redisClient, // Uncomment for production
+}));
+
+// Challenge endpoint — generates challenge, stores answer server-side
+app.post('/api/vaultguard/challenge', (req, res) => {
+  const challenge = req.vaultGuard.generateChallenge(req.sessionID);
+  res.json(challenge);
+});
+
+// Verify endpoint — server checks answer against stored value
+app.post('/api/vaultguard/verify', (req, res) => {
+  const { challengeId, answer, behavioral } = req.body;
+  const result = req.vaultGuard.verifyAnswer(challengeId, answer, behavioral, req.sessionID);
+  res.json(result);
+});
+
+app.listen(3000);
+```
+
+### Browser (with Server — Recommended)
 
 ```html
 <!DOCTYPE html>
@@ -54,11 +118,11 @@
   <script>
     VaultGuard.quickSetup('captcha-container', {
       captcha: {
+        serverUrl: '/api/vaultguard',  // ← Enable server mode
         expiryTime: 300000,
         maxAttempts: 3,
         enableBotDetection: true,
         enableCSRF: true,
-        enableFingerprintBinding: true,
         enableHoneypot: true
       },
       security: {
@@ -70,7 +134,7 @@
       },
       callbacks: {
         onSuccess: (result, id) => {
-          console.log('Verified!', result);
+          console.log('Verified! Trust score:', result.trustScore);
         },
         onError: (result, id) => {
           console.log('Failed:', result.error);
@@ -80,6 +144,28 @@
   </script>
 </body>
 </html>
+```
+
+### Browser (Client-Side Only — Demo/Prototyping)
+
+> ⚠️ **Warning:** Client-side mode stores answers in the browser. This is vulnerable to bots that read JavaScript variables. Always use server mode for production.
+
+```html
+<div id="captcha-container"></div>
+<script src="captcha.js"></script>
+<script>
+  VaultGuard.quickSetup('captcha-container', {
+    captcha: {
+      // No serverUrl = client-side mode (not recommended for production)
+      enableBotDetection: true,
+      enableHoneypot: true
+    },
+    callbacks: {
+      onSuccess: (result) => console.log('Verified!'),
+      onError: (result) => console.log('Failed:', result.error)
+    }
+  });
+</script>
 ```
 
 ### Browser (Module)
@@ -98,7 +184,31 @@ const { captcha, controller } = await VaultGuard.quickSetup('captcha-container',
 controller.reload();
 ```
 
-### Node.js
+### Node.js Server
+
+```javascript
+const vaultGuard = require('./vaultguard-server');
+
+// Create server instance
+const vg = vaultGuard.create({
+  secret: 'your-secret-key',
+  ttl: 300000,
+  maxAttempts: 3,
+  // redis: redisClient, // For production
+});
+
+// Generate challenge (answer stored server-side)
+const challenge = vg.generateChallenge();
+console.log(challenge.question); // "What is 12 + 7?"
+// challenge.answer is NOT included — only the server knows it
+
+// Verify answer (server compares against stored answer)
+const result = vg.verifyAnswer(challenge.id, '19');
+console.log(result.verified); // true
+console.log(result.trustScore); // 0.0 - 1.0
+```
+
+### Node.js Client (Serverless Mode)
 
 ```javascript
 const VaultGuard = require('./captcha.js');

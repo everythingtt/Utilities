@@ -326,34 +326,24 @@
       const honeypotConfigs = [
         { name: 'website_url', type: 'text', placeholder: 'Your website URL' },
         { name: 'email_confirm', type: 'email', placeholder: 'Confirm your email' },
-        { name: 'terms_agree', type: 'checkbox', label: 'I agree to receive newsletters' }
       ];
 
       honeypotConfigs.forEach(config => {
         const wrapper = document.createElement('div');
-        wrapper.style.cssText = 'position:absolute;left:-9999px;top:-9999px;opacity:0;height:0;width:0;overflow:hidden;';
+        wrapper.style.cssText = 'position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;pointer-events:none;';
         wrapper.setAttribute('aria-hidden', 'true');
         wrapper.setAttribute('tabindex', '-1');
+        wrapper.setAttribute('data-vg-honeypot', 'true');
 
-        if (config.type === 'checkbox') {
-          const label = document.createElement('label');
-          const input = document.createElement('input');
-          input.type = 'checkbox';
-          input.name = config.name;
-          input.setAttribute('tabindex', '-1');
-          label.appendChild(input);
-          label.appendChild(document.createTextNode(' ' + config.label));
-          wrapper.appendChild(label);
-        } else {
-          const input = document.createElement('input');
-          input.type = config.type;
-          input.name = config.name;
-          input.placeholder = config.placeholder;
-          input.setAttribute('autocomplete', 'off');
-          input.setAttribute('tabindex', '-1');
-          wrapper.appendChild(input);
-        }
+        const input = document.createElement('input');
+        input.type = config.type;
+        input.name = config.name;
+        input.placeholder = config.placeholder;
+        input.setAttribute('autocomplete', 'off');
+        input.setAttribute('tabindex', '-1');
+        input.style.cssText = 'font-size:16px;';
 
+        wrapper.appendChild(input);
         form.appendChild(wrapper);
         this._honeypotFields.push(config.name);
         fieldNames.push(config.name);
@@ -604,28 +594,8 @@
         screen.colorDepth.toString(),
         screen.width.toString() + 'x' + screen.height.toString(),
         Intl.DateTimeFormat().resolvedOptions().timeZone,
-        navigator.hardwareConcurrency?.toString() || '0',
         navigator.platform || ''
       ];
-
-      // Add canvas fingerprint component
-      try {
-        const canvas = document.createElement('canvas');
-        canvas.width = 200;
-        canvas.height = 50;
-        const ctx = canvas.getContext('2d');
-        ctx.textBaseline = 'top';
-        ctx.font = '14px Arial';
-        ctx.fillStyle = '#f60';
-        ctx.fillRect(0, 0, 200, 50);
-        ctx.fillStyle = '#069';
-        ctx.fillText('VaultGuard FP', 2, 15);
-        ctx.fillStyle = 'rgba(102,204,0,0.7)';
-        ctx.fillText('VaultGuard FP', 4, 17);
-        components.push(canvas.toDataURL());
-      } catch (e) {
-        components.push('canvas_blocked');
-      }
 
       const fingerprintString = components.join('|');
       this._fingerprint = await CryptoUtils.hash(fingerprintString);
@@ -1541,17 +1511,28 @@
         expiryTime: options.expiryTime || 300000,
         maxAttempts: options.maxAttempts || 3,
         challengeTypes: options.challengeTypes || ['math', 'text', 'pattern', 'imagePuzzle', 'textIllusion', 'audio', 'visualPath'],
+        serverUrl: options.serverUrl || null,
+        csrfToken: options.csrfToken || null,
         ...options
       };
 
       this.challenges = new Map();
       this.attempts = new Map();
 
+      this._serverMode = !!this.options.serverUrl;
+      this._serverToken = null;
+
+      if (this._serverMode) {
+        console.info(`${VAULTGUARD.name}: Server mode enabled. Challenges are generated and verified server-side.`);
+      } else {
+        console.warn(`${VAULTGUARD.name}: Running in client-side mode. For production use, configure a serverUrl for secure challenge generation. See: ${VAULTGUARD.baseUrl}/README.html`);
+      }
+
       // Security configuration
       this._securityConfig = {
         enableBotDetection: options.enableBotDetection !== false,
         enableCSRF: options.enableCSRF !== false,
-        enableFingerprintBinding: options.enableFingerprintBinding !== false,
+        enableFingerprintBinding: false,
         enableHoneypot: options.enableHoneypot !== false,
         botScoreThreshold: options.botScoreThreshold || 0.5
       };
@@ -1560,7 +1541,9 @@
       this._hooks = options.hooks || null;
 
       // Cleanup expired challenges periodically
-      setInterval(() => this.cleanup(), 60000);
+      if (!this._serverMode) {
+        setInterval(() => this.cleanup(), 60000);
+      }
     }
 
     setHooks(hooks) {
@@ -1587,16 +1570,103 @@
      * @returns {Promise<Object>} Challenge object with id, question, type, and expiresIn
      */
     async generateChallenge() {
+      if (this._serverMode) {
+        return this._generateServerChallenge();
+      }
+      return this._generateClientChallenge();
+    }
+
+    async _generateServerChallenge() {
+      try {
+        const headers = { 'Content-Type': 'application/json' };
+        if (this.options.csrfToken) {
+          headers['X-VG-CSRF'] = this.options.csrfToken;
+        }
+        if (this._serverToken) {
+          headers['X-VG-Session'] = this._serverToken;
+        }
+
+        const response = await fetch(`${this.options.serverUrl}/challenge`, {
+          method: 'POST',
+          headers,
+          credentials: 'same-origin'
+        });
+
+        if (!response.ok) {
+          throw new Error(`Server returned ${response.status}`);
+        }
+
+        const serverChallenge = await response.json();
+
+        const challengeData = {
+          id: serverChallenge.id,
+          question: serverChallenge.question,
+          type: serverChallenge.type,
+          createdAt: Date.now(),
+          expiryTime: serverChallenge.expiresIn || this.options.expiryTime,
+          maxAttempts: this.options.maxAttempts,
+          attempts: 0,
+          solved: false,
+          serverId: serverChallenge.id,
+          puzzleId: serverChallenge.puzzleId || null,
+          imageCount: serverChallenge.imageCount || null,
+          _serverMode: true
+        };
+
+        this.challenges.set(serverChallenge.id, challengeData);
+
+        const result = {
+          id: serverChallenge.id,
+          question: serverChallenge.question,
+          type: serverChallenge.type,
+          expiresIn: serverChallenge.expiresIn,
+          images: serverChallenge.images || null,
+          canvas: serverChallenge.canvas || null,
+          audioSamples: serverChallenge.audioSamples || null,
+          audioSampleRate: serverChallenge.audioSampleRate || null,
+          pathPoints: serverChallenge.pathPoints || null,
+          tolerance: serverChallenge.tolerance || null,
+          minTracePoints: serverChallenge.minTracePoints || null,
+          pathType: serverChallenge.pathType || null,
+          word: serverChallenge.word || null,
+          digitCount: serverChallenge.digitCount || null
+        };
+
+        if (['textIllusion', 'audio', 'visualPath'].includes(serverChallenge.type)) {
+          const generator = ChallengeGenerators[serverChallenge.type];
+          const localRender = generator(result);
+          if (localRender.canvas) result.canvas = localRender.canvas;
+          if (localRender.audioSamples) result.audioSamples = localRender.audioSamples;
+          if (localRender.audioSampleRate) result.audioSampleRate = localRender.audioSampleRate;
+          if (localRender.pathPoints) result.pathPoints = localRender.pathPoints;
+        }
+
+        this._emitHook('onChallengeGenerated', {
+          challengeId: serverChallenge.id,
+          type: serverChallenge.type,
+          question: serverChallenge.question,
+          expiresIn: serverChallenge.expiresIn,
+          serverMode: true
+        });
+
+        return result;
+      } catch (error) {
+        console.error(`${VAULTGUARD.name}: Server challenge fetch failed, falling back to client mode:`, error);
+        return this._generateClientChallenge();
+      }
+    }
+
+    async _generateClientChallenge() {
       const challengeType = this.options.challengeTypes[
         CryptoUtils.randomInt(0, this.options.challengeTypes.length - 1)
       ];
 
       const generator = ChallengeGenerators[challengeType];
       const challenge = challengeType === 'imagePuzzle' ? generator() : generator();
-      
+
       const challengeId = CryptoUtils.generateToken(16);
       const secret = CryptoUtils.generateToken(8);
-      
+
       let answerToHash;
       if (challengeType === 'imagePuzzle') {
         answerToHash = challenge.correctIndices.join(',');
@@ -1626,17 +1696,16 @@
         puzzleId: challenge.puzzleId || null,
         pathPoints: challenge.pathPoints || null,
         tolerance: challenge.tolerance || null,
-        minTracePoints: challenge.minTracePoints || null
+        minTracePoints: challenge.minTracePoints || null,
+        canvas: challenge.canvas || null,
+        audioSamples: challenge.audioSamples || null,
+        audioSampleRate: challenge.audioSampleRate || null,
+        _serverMode: false
       };
 
       Object.freeze(challengeData.pathPoints);
       this.challenges.set(challengeId, challengeData);
       this.attempts.set(challengeId, 0);
-
-      // Bind challenge to browser fingerprint if enabled
-      if (this._securityConfig.enableFingerprintBinding && typeof SecurityModule !== 'undefined') {
-        SecurityModule.bindChallengeToSession(challengeId).catch(() => {});
-      }
 
       const result = {
         id: challengeId,
@@ -1657,7 +1726,8 @@
         challengeId,
         type: challengeType,
         question: challenge.question,
-        expiresIn: this.options.expiryTime
+        expiresIn: this.options.expiryTime,
+        serverMode: false
       });
 
       return result;
@@ -1671,7 +1741,7 @@
      */
     async verifyAnswer(challengeId, userAnswer, formElement = null) {
       const challenge = this.challenges.get(challengeId);
-      
+
       if (!challenge) {
         return {
           success: false,
@@ -1680,10 +1750,86 @@
         };
       }
 
+      if (challenge._serverMode && this._serverMode) {
+        return this._verifyServerAnswer(challenge, userAnswer, formElement);
+      }
+      return this._verifyClientAnswer(challenge, userAnswer, formElement);
+    }
+
+    async _verifyServerAnswer(challenge, userAnswer, formElement) {
+      const clientSecurity = this._runClientSecurityChecks(challenge, formElement);
+      if (clientSecurity) return clientSecurity;
+
+      const behavioralData = this._securityConfig.enableBotDetection && typeof SecurityModule !== 'undefined'
+        ? SecurityModule.analyzeBehavior()
+        : null;
+
+      const trustPayload = behavioralData ? {
+        mouseMovements: behavioralData.mouseMovements || [],
+        keyPresses: behavioralData.keyPresses || [],
+        timeOnPage: behavioralData.timeOnPage || 0,
+        interactionCount: behavioralData.interactionCount || 0,
+        linearity: this._calculateLinearity(behavioralData.mouseMovements || [])
+      } : null;
+
+      try {
+        const headers = { 'Content-Type': 'application/json' };
+        if (this.options.csrfToken) {
+          headers['X-VG-CSRF'] = this.options.csrfToken;
+        }
+        if (this._serverToken) {
+          headers['X-VG-Session'] = this._serverToken;
+        }
+
+        const response = await fetch(`${this.options.serverUrl}/verify`, {
+          method: 'POST',
+          headers,
+          credentials: 'same-origin',
+          body: JSON.stringify({
+            challengeId: challenge.serverId || challenge.id,
+            answer: userAnswer,
+            behavioral: trustPayload
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error(`Server returned ${response.status}`);
+        }
+
+        const result = await response.json();
+
+        if (result.verified) {
+          challenge.solved = true;
+          this._emitHook('onClientVerified', { challengeId: challenge.id, type: challenge.type });
+          this._emitHook('onServerVerified', { challengeId: challenge.id, trustScore: result.trustScore });
+          this._emitHook('onSuccess', { challengeId: challenge.id, type: challenge.type, serverVerified: true, trustScore: result.trustScore });
+          return {
+            success: true,
+            verified: true,
+            trustScore: result.trustScore || null,
+            brand: VAULTGUARD.name
+          };
+        } else {
+          this.attempts.set(challenge.id, (this.attempts.get(challenge.id) || 0) + 1);
+          this._emitHook('onError', { challengeId: challenge.id, error: result.error, remainingAttempts: result.remainingAttempts });
+          return {
+            success: false,
+            error: result.error || 'Verification failed',
+            remainingAttempts: result.remainingAttempts ?? null,
+            brand: VAULTGUARD.name
+          };
+        }
+      } catch (error) {
+        console.error(`${VAULTGUARD.name}: Server verification failed:`, error);
+        return this._verifyClientAnswer(challenge, userAnswer, formElement);
+      }
+    }
+
+    async _verifyClientAnswer(challenge, userAnswer, formElement) {
       if (Date.now() - challenge.createdAt > challenge.expiryTime) {
-        this.challenges.delete(challengeId);
-        this.attempts.delete(challengeId);
-        this._emitHook('onChallengeExpired', { challengeId });
+        this.challenges.delete(challenge.id);
+        this.attempts.delete(challenge.id);
+        this._emitHook('onChallengeExpired', { challengeId: challenge.id });
         return {
           success: false,
           error: 'Challenge expired',
@@ -1699,82 +1845,15 @@
         };
       }
 
-      // ── Security checks ──
+      const clientSecurity = this._runClientSecurityChecks(challenge, formElement);
+      if (clientSecurity) return clientSecurity;
 
-      // 1. Honeypot check
-      if (this._securityConfig.enableHoneypot && formElement && typeof SecurityModule !== 'undefined') {
-        if (SecurityModule.checkHoneypot(formElement)) {
-          this.challenges.delete(challengeId);
-          this.attempts.delete(challengeId);
-          this._emitHook('onHoneypotTriggered', { challengeId, securityFlag: 'honeypot_triggered' });
-          this._emitHook('onSecurityFlag', { challengeId, flag: 'honeypot_triggered' });
-          return {
-            success: false,
-            error: 'Automated submission detected',
-            securityFlag: 'honeypot_triggered',
-            brand: VAULTGUARD.name
-          };
-        }
-      }
-
-      // 2. CSRF token validation
-      if (this._securityConfig.enableCSRF && formElement && typeof SecurityModule !== 'undefined') {
-        const csrfInput = formElement.querySelector('[name="vg_csrf_token"]');
-        if (csrfInput) {
-          const isValidCSRF = SecurityModule.validateCSRFToken(csrfInput.value);
-          if (!isValidCSRF) {
-            this._emitHook('onCSRFInvalid', { challengeId, securityFlag: 'csrf_failed' });
-            this._emitHook('onSecurityFlag', { challengeId, flag: 'csrf_failed' });
-            return {
-              success: false,
-              error: 'Security token invalid. Please reload the page.',
-              securityFlag: 'csrf_failed',
-              brand: VAULTGUARD.name
-            };
-          }
-        }
-      }
-
-      // 3. Behavioral bot detection
-      if (this._securityConfig.enableBotDetection && typeof SecurityModule !== 'undefined') {
-        const behavior = SecurityModule.analyzeBehavior();
-        if (behavior.isBot && behavior.score >= this._securityConfig.botScoreThreshold) {
-          this.challenges.delete(challengeId);
-          this.attempts.delete(challengeId);
-          this._emitHook('onBotDetected', { challengeId, score: behavior.score, signals: behavior.signals });
-          this._emitHook('onSecurityFlag', { challengeId, flag: 'bot_detected', score: behavior.score });
-          return {
-            success: false,
-            error: 'Automated behavior detected. Please try again.',
-            securityFlag: 'bot_detected',
-            brand: VAULTGUARD.name
-          };
-        }
-      }
-
-      // 4. Fingerprint session binding verification
-      if (this._securityConfig.enableFingerprintBinding && typeof SecurityModule !== 'undefined') {
-        const sessionValid = await SecurityModule.verifyChallengeSession(challengeId);
-        if (!sessionValid) {
-          this.challenges.delete(challengeId);
-          this.attempts.delete(challengeId);
-          this._emitHook('onFingerprintMismatch', { challengeId, securityFlag: 'fingerprint_mismatch' });
-          this._emitHook('onSecurityFlag', { challengeId, flag: 'fingerprint_mismatch' });
-          return {
-            success: false,
-            error: 'Session binding failed. Please reload the page.',
-            securityFlag: 'fingerprint_mismatch',
-            brand: VAULTGUARD.name
-          };
-        }
-      }
-
-      const currentAttempts = this.attempts.get(challengeId) || 0;
+      const currentAttempts = this.attempts.get(challenge.id) || 0;
       if (currentAttempts >= challenge.maxAttempts) {
-        this.challenges.delete(challengeId);
-        this.attempts.delete(challengeId);
-        this._emitHook('onMaxAttemptsExceeded', { challengeId, maxAttempts: challenge.maxAttempts });
-        this._emitHook('onError', { challengeId, error: 'Maximum attempts exceeded' });
+        this.challenges.delete(challenge.id);
+        this.attempts.delete(challenge.id);
+        this._emitHook('onMaxAttemptsExceeded', { challengeId: challenge.id, maxAttempts: challenge.maxAttempts });
+        this._emitHook('onError', { challengeId: challenge.id, error: 'Maximum attempts exceeded' });
         return {
           success: false,
           error: 'Maximum attempts exceeded',
@@ -1782,7 +1861,7 @@
         };
       }
 
-      this.attempts.set(challengeId, currentAttempts + 1);
+      this.attempts.set(challenge.id, currentAttempts + 1);
 
       let isValid = false;
 
@@ -1798,8 +1877,8 @@
 
       if (isValid) {
         challenge.solved = true;
-        this._emitHook('onClientVerified', { challengeId, type: challenge.type });
-        this._emitHook('onSuccess', { challengeId, type: challenge.type, serverVerified: false });
+        this._emitHook('onClientVerified', { challengeId: challenge.id, type: challenge.type });
+        this._emitHook('onSuccess', { challengeId: challenge.id, type: challenge.type, serverVerified: false });
         return {
           success: true,
           verified: true,
@@ -1810,7 +1889,7 @@
         const errorMsg = challenge.type === 'visualPath'
           ? 'Trace did not follow the path. Please try again.'
           : 'Incorrect answer';
-        this._emitHook('onError', { challengeId, error: errorMsg, remainingAttempts });
+        this._emitHook('onError', { challengeId: challenge.id, error: errorMsg, remainingAttempts });
         return {
           success: false,
           error: errorMsg,
@@ -1818,6 +1897,74 @@
           brand: VAULTGUARD.name
         };
       }
+    }
+
+    _runClientSecurityChecks(challenge, formElement) {
+      if (this._securityConfig.enableHoneypot && formElement && typeof SecurityModule !== 'undefined') {
+        if (SecurityModule.checkHoneypot(formElement)) {
+          this.challenges.delete(challenge.id);
+          this.attempts.delete(challenge.id);
+          this._emitHook('onHoneypotTriggered', { challengeId: challenge.id, securityFlag: 'honeypot_triggered' });
+          this._emitHook('onSecurityFlag', { challengeId: challenge.id, flag: 'honeypot_triggered' });
+          return {
+            success: false,
+            error: 'Automated submission detected',
+            securityFlag: 'honeypot_triggered',
+            brand: VAULTGUARD.name
+          };
+        }
+      }
+
+      if (this._securityConfig.enableCSRF && formElement && typeof SecurityModule !== 'undefined') {
+        const csrfInput = formElement.querySelector('[name="vg_csrf_token"]');
+        if (csrfInput) {
+          const isValidCSRF = SecurityModule.validateCSRFToken(csrfInput.value);
+          if (!isValidCSRF) {
+            this._emitHook('onCSRFInvalid', { challengeId: challenge.id, securityFlag: 'csrf_failed' });
+            this._emitHook('onSecurityFlag', { challengeId: challenge.id, flag: 'csrf_failed' });
+            return {
+              success: false,
+              error: 'Security token invalid. Please reload the page.',
+              securityFlag: 'csrf_failed',
+              brand: VAULTGUARD.name
+            };
+          }
+        }
+      }
+
+      if (this._securityConfig.enableBotDetection && typeof SecurityModule !== 'undefined') {
+        const behavior = SecurityModule.analyzeBehavior();
+        if (behavior.isBot && behavior.score >= this._securityConfig.botScoreThreshold) {
+          this.challenges.delete(challenge.id);
+          this.attempts.delete(challenge.id);
+          this._emitHook('onBotDetected', { challengeId: challenge.id, score: behavior.score, signals: behavior.signals });
+          this._emitHook('onSecurityFlag', { challengeId: challenge.id, flag: 'bot_detected', score: behavior.score });
+          return {
+            success: false,
+            error: 'Automated behavior detected. Please try again.',
+            securityFlag: 'bot_detected',
+            brand: VAULTGUARD.name
+          };
+        }
+      }
+
+      return null;
+    }
+
+    _calculateLinearity(mouseMovements) {
+      if (mouseMovements.length < 3) return 0;
+      let directionChanges = 0;
+      let totalSegments = 0;
+      for (let i = 2; i < mouseMovements.length; i++) {
+        const dx1 = mouseMovements[i - 1].x - mouseMovements[i - 2].x;
+        const dy1 = mouseMovements[i - 1].y - mouseMovements[i - 2].y;
+        const dx2 = mouseMovements[i].x - mouseMovements[i - 1].x;
+        const dy2 = mouseMovements[i].y - mouseMovements[i - 1].y;
+        const cross = dx1 * dy2 - dy1 * dx2;
+        if (Math.abs(cross) > 10) directionChanges++;
+        totalSegments++;
+      }
+      return totalSegments > 0 ? 1 - (directionChanges / totalSegments) : 1;
     }
 
     _verifyPathChallenge(challenge, traceData) {
@@ -3344,8 +3491,9 @@
       }
 
       this._attachedCaptcha = captchaInstance;
+      this._originalVerify = captchaInstance.verifyAnswer.bind(captchaInstance);
 
-      const originalVerify = captchaInstance.verifyAnswer.bind(captchaInstance);
+      const originalVerify = this._originalVerify;
 
       const self = this;
       captchaInstance.verifyAnswer = async (challengeId, userAnswer, formElement = null) => {
@@ -3409,15 +3557,16 @@
     }
 
     async _serverVerify(challengeId, userAnswer, clientResult) {
-      const clientToken = await this._generateClientToken(challengeId, userAnswer);
-      const fingerprint = await this._getFingerprint();
-
       let lastError = null;
 
       for (let attempt = 0; attempt <= this.options.retries; attempt++) {
         try {
           const controller = new AbortController();
           const timeoutId = setTimeout(() => controller.abort(), this.options.timeout);
+
+          const behavioralData = typeof SecurityModule !== 'undefined'
+            ? SecurityModule.analyzeBehavior()
+            : null;
 
           const response = await fetch(this.options.endpoint, {
             method: 'POST',
@@ -3428,8 +3577,12 @@
             body: JSON.stringify({
               challengeId,
               answer: userAnswer,
-              clientToken,
-              fingerprint,
+              behavioral: behavioralData ? {
+                mouseMovements: behavioralData.mouseMovements || [],
+                keyPresses: behavioralData.keyPresses || [],
+                timeOnPage: behavioralData.timeOnPage || 0,
+                interactionCount: behavioralData.interactionCount || 0
+              } : null,
               timestamp: Date.now()
             }),
             signal: controller.signal
@@ -3447,7 +3600,7 @@
             this.options.onServerVerified(data, challengeId);
           }
 
-          return { valid: true, serverToken: data.serverToken };
+          return { valid: true, serverToken: data.serverToken, trustScore: data.trustScore };
 
         } catch (err) {
           lastError = err;
@@ -3466,25 +3619,6 @@
         valid: false,
         error: lastError ? lastError.message : 'Server verification unavailable'
       };
-    }
-
-    async _generateClientToken(challengeId, userAnswer) {
-      const data = `${challengeId}:${userAnswer}:${Date.now()}`;
-      if (typeof CryptoUtils !== 'undefined' && CryptoUtils.hash) {
-        return CryptoUtils.hash(data);
-      }
-      return btoa(data);
-    }
-
-    async _getFingerprint() {
-      if (typeof SecurityModule !== 'undefined' && SecurityModule.generateFingerprint) {
-        try {
-          return await SecurityModule.generateFingerprint();
-        } catch (e) {
-          return 'unavailable';
-        }
-      }
-      return 'unavailable';
     }
 
     _delay(ms) {
