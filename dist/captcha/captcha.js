@@ -149,6 +149,41 @@
       const array = new Uint32Array(1);
       crypto.getRandomValues(array);
       return min + (array[0] % range);
+    },
+
+    async solveProofOfWork(challenge, difficulty, maxAttempts = 10000000) {
+      const target = '0'.repeat(difficulty);
+      const startTime = performance.now();
+      let nonce = 0;
+      const batchSize = 5000;
+
+      while (nonce < maxAttempts) {
+        for (let i = 0; i < batchSize && nonce < maxAttempts; i++, nonce++) {
+          const data = challenge + nonce.toString();
+          const hash = await CryptoUtils.hash(data);
+          if (hash.startsWith(target)) {
+            const elapsed = performance.now() - startTime;
+            return {
+              nonce: nonce,
+              hash: hash,
+              challenge: challenge,
+              difficulty: difficulty,
+              elapsedMs: Math.round(elapsed),
+              hashRate: Math.round(nonce / (elapsed / 1000))
+            };
+          }
+        }
+        await new Promise(resolve => setTimeout(resolve, 0));
+      }
+
+      return null;
+    },
+
+    async verifyProofOfWork(challenge, nonce, difficulty) {
+      const data = challenge + nonce.toString();
+      const hash = await CryptoUtils.hash(data);
+      const target = '0'.repeat(difficulty);
+      return hash.startsWith(target);
     }
   };
 
@@ -1610,6 +1645,8 @@
           serverId: serverChallenge.id,
           puzzleId: serverChallenge.puzzleId || null,
           imageCount: serverChallenge.imageCount || null,
+          powChallenge: serverChallenge.pow || null,
+          powSolution: null,
           _serverMode: true
         };
 
@@ -1700,6 +1737,8 @@
         canvas: challenge.canvas || null,
         audioSamples: challenge.audioSamples || null,
         audioSampleRate: challenge.audioSampleRate || null,
+        powChallenge: this._generateClientPoW(),
+        powSolution: null,
         _serverMode: false
       };
 
@@ -1764,13 +1803,24 @@
         ? SecurityModule.analyzeBehavior()
         : null;
 
-      const trustPayload = behavioralData ? {
-        mouseMovements: behavioralData.mouseMovements || [],
-        keyPresses: behavioralData.keyPresses || [],
-        timeOnPage: behavioralData.timeOnPage || 0,
-        interactionCount: behavioralData.interactionCount || 0,
-        linearity: this._calculateLinearity(behavioralData.mouseMovements || [])
-      } : null;
+      const powSolution = challenge.powSolution || null;
+
+      const trustPayload = {
+        ...(behavioralData ? {
+          mouseMovements: behavioralData.mouseMovements || [],
+          keyPresses: behavioralData.keyPresses || [],
+          timeOnPage: behavioralData.timeOnPage || 0,
+          interactionCount: behavioralData.interactionCount || 0,
+          linearity: this._calculateLinearity(behavioralData.mouseMovements || [])
+        } : {}),
+        ...(powSolution ? {
+          pow: {
+            nonce: powSolution.nonce,
+            elapsedMs: powSolution.elapsedMs,
+            hashRate: powSolution.hashRate
+          }
+        } : {})
+      };
 
       try {
         const headers = { 'Content-Type': 'application/json' };
@@ -1862,6 +1912,25 @@
       }
 
       this.attempts.set(challenge.id, currentAttempts + 1);
+
+      if (challenge.powChallenge && !challenge.powChallenge._clientGenerated) {
+        const powSolution = challenge.powSolution;
+        if (!powSolution) {
+          return {
+            success: false,
+            error: 'Proof-of-Work solution required',
+            brand: VAULTGUARD.name
+          };
+        }
+        const powValid = await this._verifyClientPoW(challenge, powSolution);
+        if (!powValid) {
+          return {
+            success: false,
+            error: 'Proof-of-Work verification failed',
+            brand: VAULTGUARD.name
+          };
+        }
+      }
 
       let isValid = false;
 
@@ -2059,6 +2128,22 @@
         return false;
       }
     }
+
+    _generateClientPoW() {
+      const difficulty = 2;
+      const challenge = CryptoUtils.generateToken(16);
+      return { challenge, difficulty, _clientGenerated: true };
+    },
+
+    async _verifyClientPoW(challengeData, powSolution) {
+      if (!challengeData.powChallenge) return true;
+      if (!powSolution) return false;
+
+      const target = '0'.repeat(challengeData.powChallenge.difficulty);
+      const data = challengeData.powChallenge.challenge + powSolution.nonce.toString();
+      const hash = await CryptoUtils.hash(data);
+      return hash.startsWith(target);
+    },
 
     /**
      * Get challenge status
@@ -3146,6 +3231,18 @@
           loadingEl.style.display = 'none';
           challengeAreaEl.style.display = 'block';
 
+          if (currentChallenge.powChallenge && typeof CryptoUtils !== 'undefined' && CryptoUtils.solveProofOfWork) {
+            currentChallenge.powSolution = null;
+            CryptoUtils.solveProofOfWork(
+              currentChallenge.powChallenge.challenge,
+              currentChallenge.powChallenge.difficulty
+            ).then(solution => {
+              if (solution && currentChallenge && currentChallenge.powChallenge) {
+                currentChallenge.powSolution = solution;
+              }
+            }).catch(() => {});
+          }
+
           if (callbacks.onChallengeLoaded) {
             callbacks.onChallengeLoaded(currentChallenge);
           }
@@ -3177,6 +3274,25 @@
 
       const verifyAnswer = async (userAnswer) => {
         if (!currentChallenge) return;
+
+        if (currentChallenge.powChallenge && !currentChallenge.powSolution) {
+          showMessage('Computing proof-of-work...', 'info');
+          buttonEl.disabled = true;
+          disableVerifyButtons();
+
+          const powWaitStart = Date.now();
+          const powTimeout = 60000;
+          while (!currentChallenge.powSolution && (Date.now() - powWaitStart) < powTimeout) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+          }
+
+          if (!currentChallenge.powSolution) {
+            showMessage('Proof-of-Work timed out. Please try again.', 'error');
+            buttonEl.disabled = false;
+            enableVerifyButtons();
+            return;
+          }
+        }
 
         buttonEl.disabled = true;
         disableVerifyButtons();

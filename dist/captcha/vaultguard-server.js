@@ -484,6 +484,12 @@ class VaultGuardServer {
 
     this._sessionBindings = new Map();
 
+    this._powConfig = {
+      enabled: options.pow !== false,
+      difficulty: options.powDifficulty || 3,
+      adaptivePow: options.adaptivePow !== false
+    };
+
     if (options.rateLimit !== false) {
       this._rateLimiter = new RateLimiter({
         windowMs: options.rateLimitWindowMs || 60000,
@@ -541,6 +547,22 @@ class VaultGuardServer {
       this._sessionBindings.set(challengeId, clientToken);
     }
 
+    let powChallenge = null;
+    if (this._powConfig.enabled) {
+      const powSecret = ServerCrypto.generateToken(16);
+      const powDifficulty = this._powConfig.difficulty;
+      powChallenge = {
+        challenge: powSecret,
+        difficulty: powDifficulty
+      };
+      this.store.set('pow_' + challengeId, {
+        secret: powSecret,
+        difficulty: powDifficulty,
+        createdAt: Date.now(),
+        expiresAt: Date.now() + this.ttl
+      });
+    }
+
     const result = {
       id: challengeId,
       question: challenge.question,
@@ -552,7 +574,8 @@ class VaultGuardServer {
       digitCount: challenge.digitCount || null,
       pathType: challenge.pathType || null,
       tolerance: challenge.tolerance || null,
-      minTracePoints: challenge.minTracePoints || null
+      minTracePoints: challenge.minTracePoints || null,
+      pow: powChallenge
     };
 
     return result;
@@ -606,6 +629,23 @@ class VaultGuardServer {
           error: 'Session binding mismatch'
         };
       }
+    }
+
+    if (this._powConfig.enabled) {
+      const powData = this.store.get('pow_' + challengeId);
+      if (powData) {
+        const powResult = this._verifyPoW(powData, behavioralData);
+        if (!powResult.valid) {
+          this.store.delete(challengeId);
+          this.store.delete('pow_' + challengeId);
+          return {
+            success: false,
+            verified: false,
+            error: powResult.error || 'Proof-of-Work verification failed'
+          };
+        }
+      }
+      this.store.delete('pow_' + challengeId);
     }
 
     challenge.attempts++;
@@ -749,6 +789,45 @@ class VaultGuardServer {
     }
 
     return Math.min(Math.max(score, 0), 1);
+  }
+
+  _verifyPoW(powData, behavioralData) {
+    if (!behavioralData || !behavioralData.pow || behavioralData.pow.nonce === undefined) {
+      return { valid: false, error: 'Missing Proof-of-Work solution' };
+    }
+
+    const nonce = parseInt(behavioralData.pow.nonce, 10);
+    if (isNaN(nonce) || nonce < 0) {
+      return { valid: false, error: 'Invalid Proof-of-Work nonce' };
+    }
+
+    const data = powData.secret + nonce.toString();
+    const hash = ServerCrypto.hash(data);
+    const target = '0'.repeat(powData.difficulty);
+
+    if (!hash.startsWith(target)) {
+      return { valid: false, error: 'Proof-of-Work hash does not meet difficulty target' };
+    }
+
+    if (behavioralData.pow.elapsedMs !== undefined) {
+      const minTime = Math.pow(16, powData.difficulty) * 0.0005;
+      if (behavioralData.pow.elapsedMs < minTime) {
+        return { valid: false, error: 'Proof-of-Work solved too quickly — possible pre-computation' };
+      }
+    }
+
+    return { valid: true };
+  }
+
+  _calculateAdaptiveDifficulty(behavioralData) {
+    if (!this._powConfig.adaptivePow) return this._powConfig.difficulty;
+
+    const trustScore = this._calculateTrustScore(behavioralData);
+
+    if (trustScore >= 0.8) return Math.max(1, this._powConfig.difficulty - 1);
+    if (trustScore >= 0.5) return this._powConfig.difficulty;
+    if (trustScore >= 0.3) return this._powConfig.difficulty + 1;
+    return this._powConfig.difficulty + 2;
   }
 
   /**

@@ -53,7 +53,10 @@ app.use(vaultGuard.middleware({
   rateLimitMaxChallenge: 20,
   rateLimitMaxVerify: 10,
   rateLimitBanThreshold: 5,
-  rateLimitBanDurationMs: 300000
+  rateLimitBanDurationMs: 300000,
+  pow: true,
+  powDifficulty: 3,
+  adaptivePow: true
 }));
 
 // Security headers

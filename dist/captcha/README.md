@@ -39,6 +39,9 @@
 - 🔄 **Double-Gate Validation** - Client-side (Gate 1) + Server-side (Gate 2) verification
 - 📊 **Trust Scoring** - Behavioral signals sent to server for risk assessment
 - 🔌 **Pluggable Storage** - Memory store (dev) or Redis store (production)
+- ⛏️ **Proof-of-Work** - Hash-based PoW challenges force computational cost on bots (Hashcash-style)
+- 📈 **Adaptive Difficulty** - PoW difficulty scales with trust score (suspicious clients get harder puzzles)
+- 🚦 **Rate Limiting** - Sliding window rate limiter with automatic IP banning for abuse
 
 ## 🚀 Quick Start
 
@@ -223,6 +226,76 @@ console.log(challenge.question);
 const result = await captcha.verifyAnswer(challenge.id, '42');
 console.log(result.success); // true or false
 ```
+
+## ⛏️ Proof-of-Work (PoW)
+
+VaultGuard™ uses a Hashcash-style Proof-of-Work system to impose a computational cost on each challenge request. This makes large-scale bot attacks expensive — while a human solving one challenge per form submission barely notices the CPU work, an attacker trying millions of requests faces prohibitive compute costs.
+
+### How It Works
+
+```
+Server                              Client
+  │                                    │
+  │  1. Generate challenge + secret    │
+  │  2. Store secret server-side       │
+  │  3. Send { challenge, difficulty } │
+  │ ──────────────────────────────────►│
+  │                                    │  4. Find nonce where
+  │                                    │     SHA-256(secret + nonce)
+  │                                    │     starts with N zeros
+  │                                    │
+  │  6. Verify: hash(secret + nonce)   │
+  │     starts with N zeros?           │
+  │ ◄──────────────────────────────────│  5. Send { nonce, elapsedMs }
+  │                                    │
+  │  7. Also check elapsedMs is        │
+  │     reasonable (anti-precompute)   │
+```
+
+### Difficulty Levels
+
+| Difficulty | Leading Zeros | Avg Attempts | Avg Time (modern CPU) | Use Case |
+|---|---|---|---|---|
+| 1 | 1 hex char | 16 | <0.1s | Testing only |
+| 2 | 2 hex chars | 256 | ~0.5s | Low security |
+| 3 | 3 hex chars | 4,096 | ~2s | **Default** |
+| 4 | 4 hex chars | 65,536 | ~15s | High security |
+| 5 | 5 hex chars | 1,048,576 | ~5min | Paranoid mode |
+
+### Adaptive Difficulty
+
+When `adaptivePow` is enabled (default), the server adjusts PoW difficulty based on the client's trust score:
+
+| Trust Score | Difficulty Adjustment |
+|---|---|
+| ≥ 0.8 (trusted) | −1 level (easier) |
+| ≥ 0.5 (normal) | Base difficulty |
+| ≥ 0.3 (suspicious) | +1 level (harder) |
+| < 0.3 (very suspicious) | +2 levels (much harder) |
+
+### Configuration
+
+```javascript
+app.use(vaultGuard.middleware({
+  pow: true,              // Enable PoW (default: true)
+  powDifficulty: 3,       // Base difficulty 1-5 (default: 3)
+  adaptivePow: true       // Scale difficulty by trust score (default: true)
+}));
+```
+
+### Client-Side Behavior
+
+- PoW solving runs **in the background** while the user interacts with the challenge
+- The UI shows "Computing proof-of-work..." if the user submits before PoW completes
+- The solver yields to the main thread every 5,000 attempts to keep the UI responsive
+- Maximum wait time: 60 seconds (after which the user can retry)
+
+### Server-Side Verification
+
+The server verifies:
+1. **Hash validity**: `SHA-256(secret + nonce)` starts with the required number of zeros
+2. **Minimum time**: The solution wasn't computed impossibly fast (pre-computation detection)
+3. **One-time use**: Each PoW challenge is deleted after verification (replay prevention)
 
 ## 📖 API Reference
 
