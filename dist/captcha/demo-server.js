@@ -40,7 +40,7 @@ app.use(session({
 }));
 
 // VaultGuard server middleware with demo mode + httpbin.org enabled
-app.use(vaultGuard.middleware({
+const vgMiddleware = vaultGuard.middleware({
   secret: 'demo-secret-key',
   ttl: 300000,
   maxAttempts: 3,
@@ -56,7 +56,8 @@ app.use(vaultGuard.middleware({
   adaptivePow: true,
   demoMode: true,
   httpbinUrl: 'https://httpbin.org'
-}));
+});
+app.use(vgMiddleware);
 
 // Security headers (relaxed for demo)
 app.use((req, res, next) => {
@@ -95,7 +96,7 @@ app.post('/api/vaultguard/csrf', (req, res) => {
 // DEMO API ENDPOINTS (httpbin.org proxy mode)
 // ═══════════════════════════════════════════════════════════════════════════════
 
-const demoRouter = req.vaultGuard.demoRouter();
+const demoRouter = vgMiddleware.instance.demoRouter();
 app.use('/api/vaultguard/demo', demoRouter);
 
 // ═══════════════════════════════════════════════════════════════════════════════
