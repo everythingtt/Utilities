@@ -1686,7 +1686,9 @@
           minTracePoints: serverChallenge.minTracePoints || null,
           pathType: serverChallenge.pathType || null,
           word: serverChallenge.word || null,
-          digitCount: serverChallenge.digitCount || null
+          digitCount: serverChallenge.digitCount || null,
+          powChallenge: serverChallenge.pow || null,
+          powSolution: null
         };
 
         if (['textIllusion', 'audio', 'visualPath'].includes(serverChallenge.type)) {
